@@ -1624,6 +1624,10 @@ button {
     display: flex;
     align-items: center;
     gap: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 4px 8px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
   }
 
   .admin-mobile-divider {
@@ -1637,6 +1641,26 @@ button {
     color: #f8fafc;
   }
 
+  .admin-mobile-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .admin-mobile-menu-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(16, 185, 129, 0.18);
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    color: #34d399;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 11.5px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
   .admin-mobile-logout {
     display: flex;
     align-items: center;
@@ -1644,9 +1668,9 @@ button {
     background: rgba(244, 63, 94, 0.15);
     border: 1px solid rgba(244, 63, 94, 0.3);
     color: #fca5a5;
-    padding: 5px 9px;
+    padding: 6px 10px;
     border-radius: 8px;
-    font-size: 11px;
+    font-size: 11.5px;
     font-weight: 600;
     cursor: pointer;
   }
@@ -1658,30 +1682,39 @@ button {
     overflow: hidden !important;
   }
 
+  /* ── Mobile Navigation Bar ── */
   .admin-nav {
     width: 100% !important;
     min-width: 100% !important;
-    height: 60px !important;
-    max-height: 60px !important;
+    height: 64px !important;
+    max-height: 64px !important;
     flex-direction: row !important;
     position: fixed !important;
     bottom: 0 !important;
     left: 0 !important;
     right: 0 !important;
     top: auto !important;
-    padding: 4px 8px calc(4px + env(safe-area-inset-bottom, 0px)) !important;
-    gap: 4px !important;
+    padding: 4px 6px calc(6px + env(safe-area-inset-bottom, 0px)) !important;
+    gap: 6px !important;
     overflow-x: auto !important;
     overflow-y: hidden !important;
     -webkit-overflow-scrolling: touch !important;
     white-space: nowrap !important;
-    background: rgba(6, 26, 18, 0.97) !important;
-    backdrop-filter: blur(16px) !important;
-    -webkit-backdrop-filter: blur(16px) !important;
-    border-top: 1px solid rgba(16, 185, 129, 0.3) !important;
+    background: rgba(6, 26, 18, 0.98) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border-top: 1px solid rgba(16, 185, 129, 0.35) !important;
     border-right: none !important;
     z-index: 999 !important;
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5) !important;
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.6) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    scrollbar-width: none !important;
+  }
+
+  .admin-nav::-webkit-scrollbar {
+    display: none !important;
   }
 
   .admin-nav-brand,
@@ -1692,7 +1725,9 @@ button {
 
   .admin-nav-item {
     flex: 0 0 auto !important;
-    min-width: 60px !important;
+    width: auto !important;
+    min-width: 66px !important;
+    max-width: 84px !important;
     padding: 5px 6px !important;
     flex-direction: column !important;
     align-items: center !important;
@@ -1700,11 +1735,16 @@ button {
     gap: 3px !important;
     border-radius: 8px !important;
     margin-bottom: 0 !important;
+    background: transparent !important;
+    border: 1px solid transparent !important;
   }
 
   .admin-nav-item .admin-nav-icon {
     width: 20px !important;
     height: 20px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
   }
 
   .admin-nav-item .admin-nav-label {
@@ -1712,12 +1752,21 @@ button {
     font-weight: 700 !important;
     text-align: center !important;
     white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 72px !important;
+    color: #94a3b8 !important;
   }
 
   .admin-nav-item-active {
-    background: rgba(16, 185, 129, 0.2) !important;
-    border-color: rgba(16, 185, 129, 0.5) !important;
+    background: rgba(16, 185, 129, 0.22) !important;
+    border: 1px solid rgba(16, 185, 129, 0.55) !important;
     color: #34d399 !important;
+  }
+
+  .admin-nav-item-active .admin-nav-label {
+    color: #ffffff !important;
+    font-weight: 800 !important;
   }
 
   .admin-main {
@@ -1726,7 +1775,164 @@ button {
     height: calc(100dvh - 110px - env(safe-area-inset-bottom, 0px)) !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
-    padding: 10px 10px 80px 10px !important;
+    padding: 10px 10px 90px 10px !important;
+  }
+
+  /* ── Mobile Dashboard Hero & Controls (No squishing, no overlapping) ── */
+  .dashboard-hero {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 16px !important;
+    padding: 14px !important;
+  }
+
+  .dashboard-hero-content {
+    width: 100% !important;
+    min-width: 100% !important;
+  }
+
+  .dashboard-page-title {
+    font-size: 20px !important;
+    line-height: 1.25 !important;
+  }
+
+  .dashboard-page-subtitle {
+    font-size: 12px !important;
+    line-height: 1.4 !important;
+  }
+
+  .dashboard-hero-actions {
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    width: 100% !important;
+    margin-left: 0 !important;
+    gap: 8px !important;
+  }
+
+  .dashboard-hero-actions .dropdown-container {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+  }
+
+  .dashboard-hero-actions .dropdown-trigger-btn {
+    width: 100% !important;
+    padding: 9px 12px !important;
+    font-size: 13px !important;
+  }
+
+  .dashboard-payout-widget {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    justify-content: space-between !important;
+    box-sizing: border-box !important;
+    padding: 8px 12px !important;
+  }
+
+  .dashboard-payout-input {
+    width: 80px !important;
+    font-size: 14px !important;
+  }
+
+  .btn-sync {
+    flex: 1 1 calc(45% - 4px) !important;
+    padding: 10px 8px !important;
+    font-size: 12.5px !important;
+    text-align: center !important;
+  }
+
+  .btn-excel-export {
+    flex: 1 1 calc(55% - 4px) !important;
+    padding: 10px 8px !important;
+    font-size: 12.5px !important;
+    text-align: center !important;
+  }
+
+  /* ── Mobile Drawer Sheet ── */
+  .admin-mobile-drawer-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    animation: fadeInDown 0.2s ease;
+  }
+
+  .admin-mobile-drawer {
+    background: #0d1724;
+    border-top: 1.5px solid rgba(16, 185, 129, 0.4);
+    border-radius: 20px 20px 0 0;
+    padding: 18px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.6);
+  }
+
+  .admin-mobile-drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 15px;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .admin-mobile-drawer-header button {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: #cbd5e1;
+    font-size: 14px;
+    font-weight: 700;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+
+  .admin-mobile-drawer-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+
+  .admin-drawer-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 12px 6px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .admin-drawer-item-active {
+    background: rgba(16, 185, 129, 0.2) !important;
+    border-color: #10b981 !important;
+  }
+
+  .admin-drawer-icon {
+    font-size: 20px;
+  }
+
+  .admin-drawer-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #e2e8f0;
+    text-align: center;
+    line-height: 1.2;
   }
 
   .screen {

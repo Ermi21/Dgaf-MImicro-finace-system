@@ -92,6 +92,7 @@ export default function App() {
   const [view, setView] = useState<View>(viewFromUrl());
   const [visited, setVisited] = useState<Set<View>>(() => new Set([viewFromUrl()]));
   const [lang] = useState<Language>(initialLanguage());
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Listen for browser URL/Telegram parameter changes
   useEffect(() => {
@@ -158,15 +159,60 @@ export default function App() {
       <div className="admin-shell">
         {/* Mobile Top Header */}
         <header className="admin-mobile-header">
-          <div className="admin-mobile-brand">
+          <div
+            className="admin-mobile-brand"
+            onClick={() => setMobileMenuOpen((prev) => !prev)}
+            style={{ cursor: "pointer" }}
+            title="Tap to switch section"
+          >
             <DigafLogo size={20} adminBadge={true} />
             <span className="admin-mobile-divider">/</span>
             <span className="admin-mobile-title">{currentTitle}</span>
+            <span style={{ fontSize: 11, color: "#34d399", marginLeft: 2 }}>▾</span>
           </div>
-          <button className="admin-mobile-logout" onClick={logout} title="Sign Out">
-            🚪 Sign Out
-          </button>
+
+          <div className="admin-mobile-actions">
+            <button
+              className="admin-mobile-menu-btn"
+              onClick={() => setMobileMenuOpen((prev) => !prev)}
+              title="All Sections"
+            >
+              {mobileMenuOpen ? "✕ Close" : "☰ Sections"}
+            </button>
+            <button className="admin-mobile-logout" onClick={logout} title="Sign Out">
+              🚪
+            </button>
+          </div>
         </header>
+
+        {/* Mobile Sections Drawer */}
+        {mobileMenuOpen && (
+          <div className="admin-mobile-drawer-overlay" onClick={() => setMobileMenuOpen(false)}>
+            <div className="admin-mobile-drawer" onClick={(e) => e.stopPropagation()}>
+              <div className="admin-mobile-drawer-header">
+                <span>Select Admin Section</span>
+                <button onClick={() => setMobileMenuOpen(false)}>✕</button>
+              </div>
+              <div className="admin-mobile-drawer-grid">
+                {visibleNav.map((item) => (
+                  <button
+                    key={item.view}
+                    className={`admin-drawer-item ${view === item.view ? "admin-drawer-item-active" : ""}`}
+                    onClick={() => {
+                      navigateTo(item.view);
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    <span className="admin-drawer-icon">{item.icon}</span>
+                    <span className="admin-drawer-label">
+                      {getDictionary(lang).nav[item.labelKey as keyof ReturnType<typeof getDictionary>["nav"]]}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Navigation Sidebar (Desktop) / Horizontal Tabbar (Mobile) */}
         <nav className="admin-nav">
