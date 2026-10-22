@@ -56,7 +56,28 @@ const NAV_ITEMS: { view: View; permission: string; labelKey: string; icon: React
 ];
 
 function viewFromUrl(): View {
-  const param = new URLSearchParams(window.location.search).get("view");
+  let param: string | null = null;
+  try {
+    const searchParams = new URLSearchParams(window.location.search);
+    param = searchParams.get("view");
+  } catch {}
+
+  if (!param && window.location.hash) {
+    try {
+      const hash = window.location.hash;
+      const queryPart = hash.includes("?") ? hash.split("?")[1] : hash.replace(/^#/, "");
+      const hashParams = new URLSearchParams(queryPart);
+      param = hashParams.get("view") || hashParams.get("tgWebAppStartParam");
+    } catch {}
+  }
+
+  if (!param && window.Telegram?.WebApp?.initDataUnsafe?.start_param) {
+    param = window.Telegram.WebApp.initDataUnsafe.start_param;
+  }
+
+  // Handle aliases
+  if (param === "customers") param = "users";
+
   const valid = NAV_ITEMS.map((n) => n.view);
   return (valid as string[]).includes(param ?? "") ? (param as View) : "dashboard";
 }
@@ -72,9 +93,29 @@ export default function App() {
   const [visited, setVisited] = useState<Set<View>>(() => new Set([viewFromUrl()]));
   const [lang] = useState<Language>(initialLanguage());
 
+  // Listen for browser URL/Telegram parameter changes
+  useEffect(() => {
+    function handleUrlChange() {
+      const next = viewFromUrl();
+      setView(next);
+      setVisited((prev) => new Set(prev).add(next));
+    }
+    window.addEventListener("popstate", handleUrlChange);
+    window.addEventListener("hashchange", handleUrlChange);
+    return () => {
+      window.removeEventListener("popstate", handleUrlChange);
+      window.removeEventListener("hashchange", handleUrlChange);
+    };
+  }, []);
+
   function navigateTo(nextView: View) {
     setVisited((prev) => new Set(prev).add(nextView));
     setView(nextView);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set("view", nextView);
+      window.history.pushState({}, "", url.toString());
+    } catch {}
   }
 
   if (auth.status === "loading") {
@@ -106,13 +147,30 @@ export default function App() {
   }
 
   const visibleNav = NAV_ITEMS.filter((item) => hasPermission(item.permission));
+  const currentNav = NAV_ITEMS.find((n) => n.view === view);
+  const currentTitle = currentNav
+    ? getDictionary(lang).nav[currentNav.labelKey as keyof ReturnType<typeof getDictionary>["nav"]]
+    : "Dashboard";
 
   return (
     <I18nContext.Provider value={{ lang, setLang: () => {}, t: getDictionary(lang) }}>
       {DEV_BYPASS && <DevBanner />}
       <div className="admin-shell">
+        {/* Mobile Top Header */}
+        <header className="admin-mobile-header">
+          <div className="admin-mobile-brand">
+            <DigafLogo size={20} adminBadge={true} />
+            <span className="admin-mobile-divider">/</span>
+            <span className="admin-mobile-title">{currentTitle}</span>
+          </div>
+          <button className="admin-mobile-logout" onClick={logout} title="Sign Out">
+            🚪 Sign Out
+          </button>
+        </header>
+
+        {/* Navigation Sidebar (Desktop) / Horizontal Tabbar (Mobile) */}
         <nav className="admin-nav">
-          <div className="admin-nav-brand" style={{ padding: "4px 8px" }}>
+          <div className="admin-nav-brand">
             <DigafLogo size={26} adminBadge={true} />
           </div>
           <div className="admin-nav-divider" />
@@ -128,11 +186,10 @@ export default function App() {
               </span>
             </button>
           ))}
-          <div style={{ marginTop: "auto", paddingTop: "12px", borderTop: "1px solid rgba(255, 255, 255, 0.08)" }}>
+          <div className="admin-nav-footer">
             <button
-              className="admin-nav-item"
+              className="admin-nav-item admin-nav-logout-btn"
               onClick={logout}
-              style={{ width: "100%", color: "#f87171" }}
               title="Sign Out"
             >
               <span className="admin-nav-icon">🚪</span>

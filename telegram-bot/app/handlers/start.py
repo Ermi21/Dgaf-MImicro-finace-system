@@ -2,11 +2,17 @@ from __future__ import annotations
 
 from aiogram import Router
 from aiogram.filters import CommandStart
-from aiogram.types import Message
+from aiogram.types import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    Message,
+    ReplyKeyboardRemove,
+    WebAppInfo,
+)
 
 from app.config import Settings
 from app.i18n import t
-from app.keyboards.menus import admin_inline_menu, user_menu
+from app.keyboards.menus import admin_inline_menu
 from app.services.backend_client import BackendClient
 from app.services.language_store import get_override
 
@@ -38,16 +44,36 @@ async def handle_start(message: Message, settings: Settings) -> None:
             return
         name = message.from_user.full_name or "Admin"
         role_title = status.role_name or "Admin"
+        # Clear any old bottom keyboard
         await message.answer(
-            f"👋 <b>Welcome back, {name}!</b>\n"
-            f"🛡️ You are signed in as <b>{role_title}</b>.\n\n"
-            f"⚡ <b>Admin Quick Launch</b>\n"
-            f"Tap any section below to open the Admin Console in Telegram:",
+            f"👋 Welcome back, <b>{name}</b> ({role_title})",
+            reply_markup=ReplyKeyboardRemove(),
+        )
+        await message.answer(
+            "⚡ <b>Admin Quick Launch</b>\nTap any section below to open the Admin Console in Telegram:",
             reply_markup=admin_inline_menu(lang, settings.admin_mini_app_url),
         )
         return
 
+    # Customer launcher: single clean button without redundant bottom keyboards
+    customer_menu = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="🚀 Register Now / ምዝገባ ጀምር",
+                    web_app=WebAppInfo(url=settings.user_mini_app_url),
+                )
+            ]
+        ]
+    )
+    # Clear any old persistent reply keyboard
     await message.answer(
         t("welcome_user", lang),
-        reply_markup=user_menu(lang, settings.user_mini_app_url),
+        reply_markup=ReplyKeyboardRemove(),
+    )
+    await message.answer(
+        "💼 <b>Job Platform Mini App</b>\n"
+        "Tap below to register, browse jobs, and access your profile:\n"
+        "ሁሉንም አገልግሎቶች (ምዝገባ፣ ስራዎች እና ፕሮፋይል) ለማግኘት ከታች ያለውን ቁልፍ ይጫኑ፡",
+        reply_markup=customer_menu,
     )
