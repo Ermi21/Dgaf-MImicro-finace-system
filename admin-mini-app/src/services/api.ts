@@ -200,6 +200,27 @@ export async function loginWithTelegram(): Promise<LoginResult> {
   }
 }
 
+export async function loginWithCredentials(username: string, password: string): Promise<LoginResult> {
+  const result = await request<LoginResult>("/api/v1/auth/admin-web-login", {
+    method: "POST",
+    body: { username, password },
+    auth: false,
+  });
+  setSession(result.access_token, result.permissions, {
+    role: result.role,
+    isAdmin: result.is_admin,
+  });
+  return result;
+}
+
+export function clearSession(): void {
+  accessToken = null;
+  permissions.clear();
+  try {
+    sessionStorage.removeItem(SESSION_STORAGE_KEY);
+  } catch {}
+}
+
 export function toQuery(params: Record<string, string | number | undefined>): string {
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {

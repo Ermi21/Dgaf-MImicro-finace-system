@@ -47,6 +47,10 @@ class Settings(BaseSettings):
         description="Shared secret between the bot process and this API",
     )
 
+    # Web Admin Credentials
+    admin_web_username: str = Field(default="admin", description="Username for web admin dashboard")
+    admin_web_password: str = Field(default="admin123456", description="Password for web admin dashboard")
+
     # Security
     jwt_secret: str = Field(
         default="change-me-to-a-long-random-value-secret-key-32chars",

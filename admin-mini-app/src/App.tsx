@@ -14,6 +14,7 @@ import { NotificationsPage } from "./pages/NotificationsPage";
 import { ReportsPage } from "./pages/ReportsPage";
 import { ActivityLogsPage } from "./pages/ActivityLogsPage";
 import { AdminManagementPage } from "./pages/AdminManagementPage";
+import { LoginPage } from "./pages/LoginPage";
 import { DigafLogo } from "./components/DigafLogo";
 
 import {
@@ -66,7 +67,7 @@ function initialLanguage(): Language {
 }
 
 export default function App() {
-  const auth = useAuth();
+  const { state: auth, loginWeb, logout } = useAuth();
   const [view, setView] = useState<View>(viewFromUrl());
   const [visited, setVisited] = useState<Set<View>>(() => new Set([viewFromUrl()]));
   const [lang] = useState<Language>(initialLanguage());
@@ -82,6 +83,10 @@ export default function App() {
         <LoadingSpinner />
       </div>
     );
+  }
+
+  if (auth.status === "unauthenticated") {
+    return <LoginPage onLogin={loginWeb} />;
   }
 
   if (auth.status === "not-admin") {
@@ -123,6 +128,17 @@ export default function App() {
               </span>
             </button>
           ))}
+          <div style={{ marginTop: "auto", paddingTop: "12px", borderTop: "1px solid rgba(255, 255, 255, 0.08)" }}>
+            <button
+              className="admin-nav-item"
+              onClick={logout}
+              style={{ width: "100%", color: "#f87171" }}
+              title="Sign Out"
+            >
+              <span className="admin-nav-icon">🚪</span>
+              <span className="admin-nav-label">Sign Out</span>
+            </button>
+          </div>
         </nav>
         <main className="admin-main">
           {!hasPermission(NAV_ITEMS.find((n) => n.view === view)?.permission ?? "") ? (

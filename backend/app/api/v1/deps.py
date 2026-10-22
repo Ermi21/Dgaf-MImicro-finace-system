@@ -78,6 +78,14 @@ async def get_current_actor(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
 
     telegram_id = int(payload["telegram_id"])
+    if payload.get("is_admin") and payload.get("role") == "SUPER_ADMIN" and telegram_id == 0:
+        return AuthContext(
+            telegram_id=0,
+            is_admin=True,
+            admin_id=None,
+            role_name="SUPER_ADMIN",
+            permissions=set(Permissions.all()),
+        )
 
     admin_repo = AdminRepository(session)
     admin = await admin_repo.get_by_telegram_id(telegram_id)
