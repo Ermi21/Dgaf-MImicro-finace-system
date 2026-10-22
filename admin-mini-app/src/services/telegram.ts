@@ -75,14 +75,16 @@ export function getColorScheme(): "light" | "dark" {
 }
 
 export function applyTelegramTheme(): void {
-  const app = webApp();
-  if (!app) return;
-  const root = document.documentElement.style;
-  const theme = app.themeParams;
-  if (theme.bg_color) root.setProperty("--tg-bg", theme.bg_color);
-  if (theme.text_color) root.setProperty("--tg-text", theme.text_color);
-  if (theme.hint_color) root.setProperty("--tg-hint", theme.hint_color);
-  if (theme.secondary_bg_color) root.setProperty("--tg-surface", theme.secondary_bg_color);
+  try {
+    const app = webApp();
+    if (!app || !app.themeParams) return;
+    const root = document.documentElement.style;
+    const theme = app.themeParams;
+    if (theme.bg_color) root.setProperty("--tg-bg", theme.bg_color);
+    if (theme.text_color) root.setProperty("--tg-text", theme.text_color);
+    if (theme.hint_color) root.setProperty("--tg-hint", theme.hint_color);
+    if (theme.secondary_bg_color) root.setProperty("--tg-surface", theme.secondary_bg_color);
+  } catch {}
 }
 
 export function showAlert(message: string): void {

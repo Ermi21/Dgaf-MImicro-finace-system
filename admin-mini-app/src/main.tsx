@@ -1,14 +1,25 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { applyTelegramTheme, initTelegramApp } from "./services/telegram";
 import "./index.css";
 
-initTelegramApp();
-applyTelegramTheme();
+try {
+  initTelegramApp();
+  applyTelegramTheme();
+} catch (e) {
+  console.warn("Telegram init warning:", e);
+}
 
-createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-);
+const rootElement = document.getElementById("root");
+if (rootElement) {
+  createRoot(rootElement).render(
+    <StrictMode>
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
+    </StrictMode>,
+  );
+}
+

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "./hooks/useAuth";
 import { I18nContext, getDictionary, type Language } from "./i18n";
 import { getTelegramUser } from "./services/telegram";
