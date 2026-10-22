@@ -1,0 +1,307 @@
+:root {
+  /* Telegram supplies these at runtime (see services/telegram.ts); the
+     values here are just sane light-mode fallbacks for local dev outside
+     Telegram. */
+  --tg-bg: #faf7f2;
+  --tg-text: #1c1b19;
+  --tg-hint: #6b6560;
+  --tg-surface: #ffffff;
+
+  /* Signature palette - a deep teal-green (growth/employment) instead of
+     the generic terracotta/blue defaults, used sparingly for primary
+     actions and the one accent that should stand out. */
+  --color-primary: #0f6b4c;
+  --color-primary-dark: #0b5138;
+  --color-primary-contrast: #ffffff;
+
+  --color-pending: #c98a2c;
+  --color-approved: #0f6b4c;
+  --color-rejected: #b3432b;
+  --color-suspended: #8a5a2b;
+  --color-cancelled: #8a8580;
+
+  --color-border: #e7e1d8;
+  --color-danger-bg: #fbeae5;
+
+  --radius: 14px;
+  --radius-sm: 8px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--tg-bg);
+  color: var(--tg-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font-family: inherit;
+}
+
+.screen {
+  min-height: 100%;
+  padding: var(--space-4);
+  padding-bottom: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.page-title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.page-subtitle {
+  font-size: 14px;
+  color: var(--tg-hint);
+  margin: 0;
+}
+
+.card {
+  background: var(--tg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tg-hint);
+}
+
+.field input,
+.field select {
+  font-size: 16px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--color-border);
+  background: var(--tg-surface);
+  color: var(--tg-text);
+}
+
+.field input:focus,
+.field select:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+  border-color: var(--color-primary);
+}
+
+.field-error {
+  font-size: 12px;
+  color: var(--color-rejected);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 13px 20px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--color-primary-dark);
+  outline-offset: 2px;
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+}
+
+.btn-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--tg-text);
+  border: 1.5px solid var(--color-border);
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.stepper-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--color-border);
+  color: var(--tg-hint);
+  flex-shrink: 0;
+}
+
+.stepper-dot.active {
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+}
+
+.stepper-dot.done {
+  background: var(--color-primary-dark);
+  color: var(--color-primary-contrast);
+}
+
+.stepper-line {
+  flex: 1;
+  height: 2px;
+  background: var(--color-border);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.badge-pending {
+  background: var(--color-pending);
+}
+.badge-approved {
+  background: var(--color-approved);
+}
+.badge-rejected {
+  background: var(--color-rejected);
+}
+.badge-suspended {
+  background: var(--color-suspended);
+}
+.badge-cancelled {
+  background: var(--color-cancelled);
+}
+
+.spinner {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  animation: spin 0.8s linear infinite;
+  margin: var(--space-5) auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 2s;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.error-banner {
+  background: var(--color-danger-bg);
+  color: var(--color-rejected);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  font-size: 14px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: var(--space-6) var(--space-4);
+  color: var(--tg-hint);
+}
+
+.empty-state-title {
+  font-weight: 700;
+  color: var(--tg-text);
+  margin-bottom: var(--space-1);
+}
+
+.success-check {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  margin: 0 auto var(--space-4);
+}
+
+.list-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.list-item:last-child {
+  border-bottom: none;
+}
+
+.list-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.list-item-title {
+  font-weight: 700;
+}
+
+.list-item-meta {
+  font-size: 13px;
+  color: var(--tg-hint);
+}

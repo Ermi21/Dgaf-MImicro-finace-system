@@ -1,0 +1,210 @@
+from __future__ import annotations
+
+from datetime import datetime
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.api.v1.deps import AuthContext, get_current_actor, require_permission
+from app.core.config import Settings, get_settings
+from app.core.exceptions import PermissionDeniedError
+from app.database.session import get_db
+from app.models.enums import EmploymentType, RegistrationStatus
+from app.models.registration import Registration
+from app.permissions.constants import Permissions
+from app.schemas.common import Page
+from app.schemas.registration import (
+    MyRegistrationItem,
+    RegistrationCreate,
+    RegistrationFilter,
+    RegistrationListItem,
+    RegistrationRead,
+    RegistrationRejectRequest,
+)
+from app.services.registration_service import RegistrationService
+
+router = APIRouter(prefix="/registrations", tags=["registrations"])
+
+
+def _to_list_item(reg: Registration) -> RegistrationListItem:
+    return RegistrationListItem(
+        id=reg.id,
+        created_at=reg.created_at,
+        updated_at=reg.updated_at,
+        status=reg.status,
+        employment_type=reg.employment_type,
+        user_first_name=reg.user.first_name,
+        user_second_name=reg.user.second_name,
+        user_phone=reg.user.phone,
+        job_name=reg.job.name,
+        city_name=reg.city.name,
+        subcity_name=reg.subcity.name,
+        woreda_name=reg.woreda.name,
+    )
+
+
+# ----------------------------------------------------------------------
+# Job seeker facing
+# ----------------------------------------------------------------------
+
+
+@router.post("", response_model=RegistrationRead, status_code=201)
+async def create_registration(
+    payload: RegistrationCreate,
+    actor: AuthContext = Depends(get_current_actor),
+    session: AsyncSession = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> Registration:
+    service = RegistrationService(session, settings)
+    registration = await service.create_registration(telegram_id=actor.telegram_id, payload=payload)
+    return await service.get_registration_or_raise(registration.id)
+
+
+@router.get("/me", response_model=list[MyRegistrationItem])
+async def list_my_registrations(
+    actor: AuthContext = Depends(get_current_actor),
+    session: AsyncSession = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> list[MyRegistrationItem]:
+    service = RegistrationService(session, settings)
+    regs = await service.list_own_registrations(telegram_id=actor.telegram_id)
+    return [
+        MyRegistrationItem(
+            id=r.id,
+            created_at=r.created_at,
+            updated_at=r.updated_at,
+            status=r.status,
+            employment_type=r.employment_type,
+            rejection_reason=r.rejection_reason,
+            job_name=r.job.name,
+            city_name=r.city.name,
+            subcity_name=r.subcity.name,
+            woreda_name=r.woreda.name,
+        )
+        for r in regs
+    ]
+
+
+# ----------------------------------------------------------------------
+# Admin facing
+# ----------------------------------------------------------------------
+
+
+@router.get("", response_model=Page[RegistrationListItem])
+async def search_registrations(
+    registration_id: UUID | None = None,
+    name: str | None = None,
+    phone: str | None = None,
+    status: RegistrationStatus | None = None,
+    job_id: UUID | None = None,
+    city_id: UUID | None = None,
+    subcity_id: UUID | None = None,
+    woreda_id: UUID | None = None,
+    employment_type: EmploymentType | None = None,
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    actor: AuthContext = Depends(require_permission(Permissions.REGISTRATION_VIEW)),
+    session: AsyncSession = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> Page[RegistrationListItem]:
+    filters = RegistrationFilter(
+        registration_id=registration_id,
+        name=name,
+        phone=phone,
+        status=status,
+        job_id=job_id,
+        city_id=city_id,
+        subcity_id=subcity_id,
+        woreda_id=woreda_id,
+        employment_type=employment_type,
+        date_from=date_from,
+        date_to=date_to,
+        page=page,
+        page_size=page_size,
+    )
+    service = RegistrationService(session, settings)
+    items, total = await service.search(filters)
+    return Page.create(
+        items=[_to_list_item(r) for r in items], total=total, page=page, page_size=page_size
+    )
+
+
+@router.get("/{registration_id}", response_model=RegistrationRead)
+async def get_registration(
+    registration_id: UUID,
+    actor: AuthContext = Depends(get_current_actor),
+    session: AsyncSession = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> Registration:
+    service = RegistrationService(session, settings)
+    if actor.is_admin:
+        if not actor.has_permission(Permissions.REGISTRATION_VIEW):
+            raise PermissionDeniedError("Missing permission: registration.view")
+        return await service.get_registration_or_raise(registration_id)
+    return await service.get_own_registration_or_raise(
+        registration_id, telegram_id=actor.telegram_id
+    )
+
+
+@router.post("/{registration_id}/approve", response_model=RegistrationRead)
+async def approve_registration(
+    registration_id: UUID,
+    actor: AuthContext = Depends(require_permission(Permissions.REGISTRATION_APPROVE)),
+    session: AsyncSession = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> Registration:
+    service = RegistrationService(session, settings)
+    await service.approve(registration_id, admin_id=UUID(actor.admin_id))
+    return await service.get_registration_or_raise(registration_id)
+
+
+@router.post("/{registration_id}/reject", response_model=RegistrationRead)
+async def reject_registration(
+    registration_id: UUID,
+    body: RegistrationRejectRequest,
+    actor: AuthContext = Depends(require_permission(Permissions.REGISTRATION_REJECT)),
+    session: AsyncSession = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> Registration:
+    service = RegistrationService(session, settings)
+    await service.reject(registration_id, admin_id=UUID(actor.admin_id), reason=body.reason)
+    return await service.get_registration_or_raise(registration_id)
+
+
+@router.post("/{registration_id}/suspend", response_model=RegistrationRead)
+async def suspend_registration(
+    registration_id: UUID,
+    actor: AuthContext = Depends(require_permission(Permissions.REGISTRATION_SUSPEND)),
+    session: AsyncSession = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> Registration:
+    service = RegistrationService(session, settings)
+    await service.suspend(registration_id, admin_id=UUID(actor.admin_id))
+    return await service.get_registration_or_raise(registration_id)
+
+
+@router.post("/{registration_id}/resume", response_model=RegistrationRead)
+async def resume_registration(
+    registration_id: UUID,
+    actor: AuthContext = Depends(require_permission(Permissions.REGISTRATION_APPROVE)),
+    session: AsyncSession = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> Registration:
+    service = RegistrationService(session, settings)
+    await service.resume(registration_id, admin_id=UUID(actor.admin_id))
+    return await service.get_registration_or_raise(registration_id)
+
+
+@router.post("/{registration_id}/reset-to-pending", response_model=RegistrationRead)
+async def reset_registration_to_pending(
+    registration_id: UUID,
+    actor: AuthContext = Depends(require_permission(Permissions.REGISTRATION_APPROVE)),
+    session: AsyncSession = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> Registration:
+    service = RegistrationService(session, settings)
+    await service.reset_to_pending(registration_id, admin_id=UUID(actor.admin_id))
+    return await service.get_registration_or_raise(registration_id)
