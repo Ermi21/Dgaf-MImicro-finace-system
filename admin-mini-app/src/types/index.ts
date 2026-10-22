@@ -1,4 +1,7 @@
 export type EmploymentType = "EMPLOYEE" | "SELF_EMPLOYED";
+export type Gender = "MALE" | "FEMALE";
+export type Sex = Gender;
+export type ReferralType = "NONE" | "ADMIN" | "PERSON";
 export type RegistrationStatus = "PENDING" | "APPROVED" | "REJECTED" | "SUSPENDED" | "CANCELLED";
 export type NotificationStatus = "PENDING" | "SENT" | "FAILED";
 export type NotificationAudienceType =
@@ -63,6 +66,13 @@ export interface RegistrationListItem {
   updated_at: string;
   status: RegistrationStatus;
   employment_type: EmploymentType;
+  gender: Gender | null;
+  sex: Gender | null;
+  national_id?: string | null;
+  referral_type?: ReferralType | null;
+  referral_name?: string | null;
+  referral_admin_id?: string | null;
+  referral_admin_name?: string | null;
   user_first_name: string;
   user_second_name: string;
   user_phone: string;
@@ -78,6 +88,13 @@ export interface RegistrationDetail {
   updated_at: string;
   status: RegistrationStatus;
   employment_type: EmploymentType;
+  gender: Gender | null;
+  sex: Gender | null;
+  national_id?: string | null;
+  referral_type?: ReferralType | null;
+  referral_name?: string | null;
+  referral_admin_id?: string | null;
+  referral_admin_name?: string | null;
   rejection_reason: string | null;
   approved_at: string | null;
   rejected_at: string | null;
@@ -98,8 +115,22 @@ export interface RegistrationFilters {
   subcity_id?: string;
   woreda_id?: string;
   employment_type?: EmploymentType;
+  gender?: Gender;
+  referral_type?: ReferralType;
+  referrer_name?: string;
+  date_from?: string;
+  date_to?: string;
   page: number;
   page_size: number;
+}
+
+export interface ReferralSummary {
+  total_referrals: number;
+  approved_referrals: number;
+  pending_referrals: number;
+  rejected_referrals: number;
+  payout_rate: number;
+  total_payout: number;
 }
 
 export interface DashboardStats {
@@ -115,6 +146,44 @@ export interface DashboardStats {
   notifications_sent: number;
   notifications_failed: number;
   notifications_pending: number;
+  referral_summary?: ReferralSummary;
+}
+
+export interface ReferredCustomer {
+  registration_id: string;
+  customer_name: string;
+  customer_phone: string;
+  job_name: string;
+  status: RegistrationStatus;
+  gender: Gender | null;
+  national_id: string | null;
+  created_at: string | null;
+}
+
+export interface ReferrerPerformance {
+  referrer_name: string;
+  referral_type: ReferralType;
+  total_invites: number;
+  approved_invites: number;
+  pending_invites: number;
+  rejected_invites: number;
+  suspended_invites: number;
+  total_payout: number;
+  payout_rate: number;
+  customers: ReferredCustomer[];
+}
+
+export interface ReferralReport {
+  summary: {
+    total_referrals: number;
+    approved_referrals: number;
+    pending_referrals: number;
+    rejected_referrals: number;
+    payout_rate: number;
+    total_payout: number;
+    unique_referrers: number;
+  };
+  referrers: ReferrerPerformance[];
 }
 
 export interface RegistrationTrends {

@@ -4,7 +4,10 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     env_file:
-      - ./backend/.env
+      - path: ./secrets/backend.env
+        required: false
+      - path: ./backend/.env
+        required: false
     expose:
       - "8000"
     ports:
@@ -16,7 +19,10 @@ services:
       context: ./telegram-bot
       dockerfile: Dockerfile
     env_file:
-      - ./telegram-bot/.env
+      - path: ./secrets/telegram-bot.env
+        required: false
+      - path: ./telegram-bot/.env
+        required: false
     depends_on:
       - backend
     restart: unless-stopped

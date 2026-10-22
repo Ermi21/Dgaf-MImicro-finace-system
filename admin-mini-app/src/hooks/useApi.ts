@@ -1,24 +1,47 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiRequestError } from "../services/api";
 
-type FetchState<T> =
-  | { status: "loading" }
-  | { status: "success"; data: T }
-  | { status: "error"; message: string; code?: string };
+export type FetchState<T> =
+  | { status: "loading"; data?: T; isRevalidating?: boolean }
+  | { status: "success"; data: T; isRevalidating?: boolean }
+  | { status: "error"; message: string; code?: string; data?: T; isRevalidating?: boolean };
 
+/**
+ * Generic data-fetching hook with Stale-While-Revalidate support.
+ * Preserves previously loaded data so page switching and re-filtering doesn't
+ * cause annoying blank screens or spinner flashes.
+ */
 export function useApi<T>(
   fetcher: () => Promise<T>,
   deps: unknown[] = [],
 ): FetchState<T> & { reload: () => void } {
+  const dataRef = useRef<T | undefined>(undefined);
   const [state, setState] = useState<FetchState<T>>({ status: "loading" });
   const [reloadKey, setReloadKey] = useState(0);
 
+  const fetcherRef = useRef(fetcher);
+  useEffect(() => {
+    fetcherRef.current = fetcher;
+  });
+
   const load = useCallback(() => {
-    setState({ status: "loading" });
-    fetcher()
-      .then((data) => setState({ status: "success", data }))
+    if (dataRef.current !== undefined) {
+      // Keep existing data, mark as background revalidating
+      setState({ status: "success", data: dataRef.current, isRevalidating: true });
+    } else {
+      setState({ status: "loading" });
+    }
+
+    fetcherRef.current()
+      .then((data) => {
+        dataRef.current = data;
+        setState({ status: "success", data, isRevalidating: false });
+      })
       .catch((err: unknown) => {
-        if (err instanceof ApiRequestError) {
+        if (dataRef.current !== undefined) {
+          // If we already had data, don't break the UI
+          setState({ status: "success", data: dataRef.current, isRevalidating: false });
+        } else if (err instanceof ApiRequestError) {
           setState({ status: "error", message: err.message, code: err.code });
         } else {
           setState({ status: "error", message: "Something went wrong." });

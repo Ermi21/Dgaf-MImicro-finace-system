@@ -1,28 +1,61 @@
-# Environment / secrets
+# ==========================================
+# SECRETS & ENVIRONMENT VARIABLES (NEVER COMMIT)
+# ==========================================
 .env
 *.env
+.env.*
+.env.local
+.env.*.local
+*.pem
+*.key
+*.cert
+
+# Centralized Secrets Directory
+secrets/*.env
+secrets/*.local
+secrets/backend.env
+secrets/telegram-bot.env
+secrets/admin-mini-app.env
+secrets/user-mini-app.env
+
+# Allow safe templates and documentation only
+!secrets/*.example
+!secrets/README.md
 !.env.example
 
+# ==========================================
 # Python
+# ==========================================
 __pycache__/
 *.py[cod]
+*$py.class
 *.egg-info/
 .venv/
 venv/
+ENV/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
+*.sqlite3
 
-# Node / frontend
+# ==========================================
+# Node / Frontend
+# ==========================================
 node_modules/
 dist/
 build/
 .vite/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# OS / editor
+# ==========================================
+# Operating System & IDE
+# ==========================================
 .DS_Store
+Thumbs.db
 .idea/
 .vscode/
-.env
-.env.*
-!.env.example
+*.swp
+*.swo
+*.log

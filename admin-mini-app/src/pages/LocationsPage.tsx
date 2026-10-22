@@ -5,6 +5,7 @@ import { useApi } from "../hooks/useApi";
 import type { City, Subcity, Woreda } from "../types";
 import { LoadingSpinner, ErrorBanner, EmptyState } from "../components/Feedback";
 import { TextField } from "../components/TextField";
+import { SelectField } from "../components/SelectField";
 import { Button } from "../components/Button";
 import { IfPermitted } from "../components/IfPermitted";
 import { Permissions } from "../permissions";
@@ -33,7 +34,15 @@ export function LocationsPage() {
   const [newCityName, setNewCityName] = useState("");
   const [newSubcityName, setNewSubcityName] = useState("");
   const [newWoredaName, setNewWoredaName] = useState("");
+  const [addSubcityCityId, setAddSubcityCityId] = useState("");
+  const [addWoredaCityId, setAddWoredaCityId] = useState("");
+  const [addWoredaSubcityId, setAddWoredaSubcityId] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  const addWoredaSubcitiesState = useApi<Subcity[]>(
+    () => (addWoredaCityId ? api.get<Subcity[]>(`/api/v1/cities/${addWoredaCityId}/subcities`) : Promise.resolve([])),
+    [addWoredaCityId],
+  );
 
   async function addCity() {
     setError(null);
@@ -47,9 +56,14 @@ export function LocationsPage() {
   }
 
   async function addSubcity() {
+    const city_id = addSubcityCityId || selectedCity;
+    if (!city_id) {
+      setError(t.locations.selectCityFirst);
+      return;
+    }
     setError(null);
     try {
-      await api.post("/api/v1/subcities", { name: newSubcityName.trim(), city_id: selectedCity });
+      await api.post("/api/v1/subcities", { name: newSubcityName.trim(), city_id });
       setNewSubcityName("");
       subcitiesState.reload();
     } catch (err) {
@@ -58,9 +72,14 @@ export function LocationsPage() {
   }
 
   async function addWoreda() {
+    const subcity_id = addWoredaSubcityId || selectedSubcity;
+    if (!subcity_id) {
+      setError(t.locations.selectSubcityFirst);
+      return;
+    }
     setError(null);
     try {
-      await api.post("/api/v1/woredas", { name: newWoredaName.trim(), subcity_id: selectedSubcity });
+      await api.post("/api/v1/woredas", { name: newWoredaName.trim(), subcity_id });
       setNewWoredaName("");
       woredasState.reload();
     } catch (err) {
@@ -156,20 +175,30 @@ export function LocationsPage() {
             ))}
           </>
         )}
-        {selectedCity && (
-          <IfPermitted permission={Permissions.LOCATION_CREATE}>
-            <div className="inline-form">
-              <TextField
-                label={t.locations.name}
-                value={newSubcityName}
-                onChange={(e) => setNewSubcityName(e.target.value)}
+        <IfPermitted permission={Permissions.LOCATION_CREATE}>
+          <div className="inline-form">
+            {!selectedCity && (
+              <SelectField
+                label={t.registrations.filterCity}
+                value={addSubcityCityId}
+                placeholder={t.registrations.allCities}
+                options={citiesState.status === "success" ? citiesState.data.map((c) => ({ value: c.id, label: c.name })) : []}
+                onChange={(v) => setAddSubcityCityId(v)}
               />
-              <Button onClick={addSubcity} disabled={newSubcityName.trim().length < 2}>
-                {t.locations.addSubcity}
-              </Button>
-            </div>
-          </IfPermitted>
-        )}
+            )}
+            <TextField
+              label={t.locations.name}
+              value={newSubcityName}
+              onChange={(e) => setNewSubcityName(e.target.value)}
+            />
+            <Button
+              onClick={addSubcity}
+              disabled={newSubcityName.trim().length < 2 || !(selectedCity || addSubcityCityId)}
+            >
+              {t.locations.addSubcity}
+            </Button>
+          </div>
+        </IfPermitted>
       </div>
 
       <div className="card">
@@ -192,20 +221,42 @@ export function LocationsPage() {
             ))}
           </>
         )}
-        {selectedSubcity && (
-          <IfPermitted permission={Permissions.LOCATION_CREATE}>
-            <div className="inline-form">
-              <TextField
-                label={t.locations.name}
-                value={newWoredaName}
-                onChange={(e) => setNewWoredaName(e.target.value)}
-              />
-              <Button onClick={addWoreda} disabled={newWoredaName.trim().length < 2}>
-                {t.locations.addWoreda}
-              </Button>
-            </div>
-          </IfPermitted>
-        )}
+        <IfPermitted permission={Permissions.LOCATION_CREATE}>
+          <div className="inline-form">
+            {!selectedSubcity && (
+              <>
+                <SelectField
+                  label={t.registrations.filterCity}
+                  value={addWoredaCityId}
+                  placeholder={t.registrations.allCities}
+                  options={citiesState.status === "success" ? citiesState.data.map((c) => ({ value: c.id, label: c.name })) : []}
+                  onChange={(v) => {
+                    setAddWoredaCityId(v);
+                    setAddWoredaSubcityId("");
+                  }}
+                />
+                <SelectField
+                  label={t.registrations.filterSubcity}
+                  value={addWoredaSubcityId}
+                  placeholder={t.registrations.allSubcities}
+                  options={addWoredaSubcitiesState.status === "success" ? addWoredaSubcitiesState.data.map((s) => ({ value: s.id, label: s.name })) : []}
+                  onChange={(v) => setAddWoredaSubcityId(v)}
+                />
+              </>
+            )}
+            <TextField
+              label={t.locations.name}
+              value={newWoredaName}
+              onChange={(e) => setNewWoredaName(e.target.value)}
+            />
+            <Button
+              onClick={addWoreda}
+              disabled={newWoredaName.trim().length < 2 || !(selectedSubcity || addWoredaSubcityId)}
+            >
+              {t.locations.addWoreda}
+            </Button>
+          </div>
+        </IfPermitted>
       </div>
     </div>
   );

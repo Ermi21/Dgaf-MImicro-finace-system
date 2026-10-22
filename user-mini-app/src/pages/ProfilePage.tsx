@@ -3,6 +3,7 @@ import { api } from "../services/api";
 import { useApi } from "../hooks/useApi";
 import type { UserProfile } from "../types";
 import { LoadingSpinner, ErrorBanner, EmptyState } from "../components/Feedback";
+import { ReviewRow } from "../components/ReviewRow";
 
 export function ProfilePage() {
   const { t, lang, setLang } = useI18n();
@@ -59,14 +60,7 @@ export function ProfilePage() {
   );
 }
 
-function ReviewRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="list-item" style={{ padding: "8px 0" }}>
-      <div className="list-item-meta">{label}</div>
-      <div className="list-item-title">{value}</div>
-    </div>
-  );
-}
+// ReviewRow is now a shared component — see components/ReviewRow.tsx
 
 function LangButton({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
   return (

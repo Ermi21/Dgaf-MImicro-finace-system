@@ -10,21 +10,64 @@ function webApp() {
 
 export function initTelegramApp(): void {
   const app = webApp();
-  if (!app) return;
-  app.ready();
-  app.expand();
+  if (app) {
+    try {
+      app.ready();
+      app.expand();
+    } catch {}
+  }
 }
 
 export function getInitData(): string {
   return webApp()?.initData ?? "";
 }
 
+export async function getInitDataAsync(timeoutMs = 200): Promise<string> {
+  const app = webApp();
+  if (app?.initData) {
+    try {
+      app.ready();
+      app.expand();
+    } catch {}
+    return app.initData;
+  }
+
+  // Outside real Telegram or in dev mode without initData, return immediately
+  if (import.meta.env.DEV && !app?.initData) {
+    return "";
+  }
+
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const current = webApp();
+    if (current?.initData) {
+      try {
+        current.ready();
+        current.expand();
+      } catch {}
+      return current.initData;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+
+  const finalApp = webApp();
+  if (finalApp) {
+    try {
+      finalApp.ready();
+    } catch {}
+    return finalApp.initData ?? "";
+  }
+  return "";
+}
+
 export function getStartParam(): string | null {
-  return webApp()?.initDataUnsafe.start_param ?? null;
+  const app = webApp();
+  return app?.initDataUnsafe?.start_param ?? null;
 }
 
 export function getTelegramUser() {
-  return webApp()?.initDataUnsafe.user ?? null;
+  const app = webApp();
+  return app?.initDataUnsafe?.user ?? null;
 }
 
 export function getColorScheme(): "light" | "dark" {

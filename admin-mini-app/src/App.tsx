@@ -14,6 +14,22 @@ import { NotificationsPage } from "./pages/NotificationsPage";
 import { ReportsPage } from "./pages/ReportsPage";
 import { ActivityLogsPage } from "./pages/ActivityLogsPage";
 import { AdminManagementPage } from "./pages/AdminManagementPage";
+import { DigafLogo } from "./components/DigafLogo";
+
+import {
+  DashboardIcon,
+  RegistrationsIcon,
+  UsersIcon,
+  JobsIcon,
+  LocationsIcon,
+  NotificationsIcon,
+  ReportsIcon,
+  ActivityLogsIcon,
+  AdminManagementIcon,
+} from "./components/AdminIcons";
+
+/** True only in `npm run dev` AND outside a real Telegram client (initData is empty). */
+const DEV_BYPASS = import.meta.env.DEV && !window.Telegram?.WebApp?.initData;
 
 type View =
   | "dashboard"
@@ -26,16 +42,16 @@ type View =
   | "activity-logs"
   | "admin-management";
 
-const NAV_ITEMS: { view: View; permission: string; labelKey: string }[] = [
-  { view: "dashboard", permission: Permissions.DASHBOARD_VIEW, labelKey: "dashboard" },
-  { view: "registrations", permission: Permissions.REGISTRATION_VIEW, labelKey: "registrations" },
-  { view: "users", permission: Permissions.USER_VIEW, labelKey: "users" },
-  { view: "jobs", permission: Permissions.JOB_VIEW, labelKey: "jobs" },
-  { view: "locations", permission: Permissions.LOCATION_VIEW, labelKey: "locations" },
-  { view: "notifications", permission: Permissions.NOTIFICATION_VIEW, labelKey: "notifications" },
-  { view: "reports", permission: Permissions.REPORT_VIEW, labelKey: "reports" },
-  { view: "activity-logs", permission: Permissions.ACTIVITY_LOG_VIEW, labelKey: "activityLogs" },
-  { view: "admin-management", permission: Permissions.ADMIN_MANAGE, labelKey: "adminManagement" },
+const NAV_ITEMS: { view: View; permission: string; labelKey: string; icon: React.ReactNode }[] = [
+  { view: "dashboard",        permission: Permissions.DASHBOARD_VIEW,    labelKey: "dashboard",       icon: <DashboardIcon /> },
+  { view: "registrations",    permission: Permissions.REGISTRATION_VIEW, labelKey: "registrations",   icon: <RegistrationsIcon /> },
+  { view: "users",            permission: Permissions.USER_VIEW,         labelKey: "users",           icon: <UsersIcon /> },
+  { view: "jobs",             permission: Permissions.JOB_VIEW,          labelKey: "jobs",            icon: <JobsIcon /> },
+  { view: "locations",        permission: Permissions.LOCATION_VIEW,     labelKey: "locations",       icon: <LocationsIcon /> },
+  { view: "notifications",    permission: Permissions.NOTIFICATION_VIEW, labelKey: "notifications",   icon: <NotificationsIcon /> },
+  { view: "reports",          permission: Permissions.REPORT_VIEW,       labelKey: "reports",         icon: <ReportsIcon /> },
+  { view: "activity-logs",    permission: Permissions.ACTIVITY_LOG_VIEW, labelKey: "activityLogs",    icon: <ActivityLogsIcon /> },
+  { view: "admin-management", permission: Permissions.ADMIN_MANAGE,      labelKey: "adminManagement", icon: <AdminManagementIcon /> },
 ];
 
 function viewFromUrl(): View {
@@ -52,7 +68,13 @@ function initialLanguage(): Language {
 export default function App() {
   const auth = useAuth();
   const [view, setView] = useState<View>(viewFromUrl());
+  const [visited, setVisited] = useState<Set<View>>(() => new Set([viewFromUrl()]));
   const [lang] = useState<Language>(initialLanguage());
+
+  function navigateTo(nextView: View) {
+    setVisited((prev) => new Set(prev).add(nextView));
+    setView(nextView);
+  }
 
   if (auth.status === "loading") {
     return (
@@ -82,15 +104,23 @@ export default function App() {
 
   return (
     <I18nContext.Provider value={{ lang, setLang: () => {}, t: getDictionary(lang) }}>
+      {DEV_BYPASS && <DevBanner />}
       <div className="admin-shell">
         <nav className="admin-nav">
+          <div className="admin-nav-brand" style={{ padding: "4px 8px" }}>
+            <DigafLogo size={26} adminBadge={true} />
+          </div>
+          <div className="admin-nav-divider" />
           {visibleNav.map((item) => (
             <button
               key={item.view}
               className={`admin-nav-item ${view === item.view ? "admin-nav-item-active" : ""}`}
-              onClick={() => setView(item.view)}
+              onClick={() => navigateTo(item.view)}
             >
-              {getDictionary(lang).nav[item.labelKey as keyof ReturnType<typeof getDictionary>["nav"]]}
+              <span className="admin-nav-icon">{item.icon}</span>
+              <span className="admin-nav-label">
+                {getDictionary(lang).nav[item.labelKey as keyof ReturnType<typeof getDictionary>["nav"]]}
+              </span>
             </button>
           ))}
         </nav>
@@ -101,15 +131,51 @@ export default function App() {
             </div>
           ) : (
             <>
-              {view === "dashboard" && <DashboardPage />}
-              {view === "registrations" && <RegistrationsPage />}
-              {view === "users" && <UsersPage />}
-              {view === "jobs" && <JobsPage />}
-              {view === "locations" && <LocationsPage />}
-              {view === "notifications" && <NotificationsPage />}
-              {view === "reports" && <ReportsPage />}
-              {view === "activity-logs" && <ActivityLogsPage />}
-              {view === "admin-management" && <AdminManagementPage />}
+              {visited.has("dashboard") && (
+                <div style={{ display: view === "dashboard" ? "block" : "none" }}>
+                  <DashboardPage />
+                </div>
+              )}
+              {visited.has("registrations") && (
+                <div style={{ display: view === "registrations" ? "block" : "none" }}>
+                  <RegistrationsPage />
+                </div>
+              )}
+              {visited.has("users") && (
+                <div style={{ display: view === "users" ? "block" : "none" }}>
+                  <UsersPage />
+                </div>
+              )}
+              {visited.has("jobs") && (
+                <div style={{ display: view === "jobs" ? "block" : "none" }}>
+                  <JobsPage />
+                </div>
+              )}
+              {visited.has("locations") && (
+                <div style={{ display: view === "locations" ? "block" : "none" }}>
+                  <LocationsPage />
+                </div>
+              )}
+              {visited.has("notifications") && (
+                <div style={{ display: view === "notifications" ? "block" : "none" }}>
+                  <NotificationsPage />
+                </div>
+              )}
+              {visited.has("reports") && (
+                <div style={{ display: view === "reports" ? "block" : "none" }}>
+                  <ReportsPage />
+                </div>
+              )}
+              {visited.has("activity-logs") && (
+                <div style={{ display: view === "activity-logs" ? "block" : "none" }}>
+                  <ActivityLogsPage />
+                </div>
+              )}
+              {visited.has("admin-management") && (
+                <div style={{ display: view === "admin-management" ? "block" : "none" }}>
+                  <AdminManagementPage />
+                </div>
+              )}
             </>
           )}
         </main>
@@ -121,4 +187,28 @@ export default function App() {
 function AccessDeniedStandalone({ lang }: { lang: Language }) {
   const t = getDictionary(lang);
   return <div className="empty-state-title">{t.common.accessDenied}</div>;
+}
+
+/** Shown only in browser dev mode — never rendered inside a real Telegram WebApp. */
+function DevBanner() {
+  return (
+    <div
+      style={{
+        background: "#0f1a14",
+        color: "#4ade80",
+        fontSize: 11,
+        fontWeight: 600,
+        letterSpacing: "0.06em",
+        textAlign: "center",
+        padding: "6px 12px",
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 9999,
+      }}
+    >
+      ⚠️ DEV PREVIEW — Open from the bot for full functionality.
+    </div>
+  );
 }
