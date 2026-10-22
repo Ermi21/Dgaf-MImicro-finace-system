@@ -6,7 +6,7 @@ from aiogram.types import Message
 
 from app.config import Settings
 from app.i18n import t
-from app.keyboards.menus import admin_menu, user_menu
+from app.keyboards.menus import admin_inline_menu, user_menu
 from app.services.backend_client import BackendClient
 from app.services.language_store import get_override
 
@@ -37,9 +37,13 @@ async def handle_start(message: Message, settings: Settings) -> None:
             await message.answer(t("account_inactive", lang))
             return
         name = message.from_user.full_name or "Admin"
+        role_title = status.role_name or "Admin"
         await message.answer(
-            t("welcome_admin", lang, name=name, role=status.role_name or "Admin"),
-            reply_markup=admin_menu(lang, settings.admin_mini_app_url),
+            f"👋 <b>Welcome back, {name}!</b>\n"
+            f"🛡️ You are signed in as <b>{role_title}</b>.\n\n"
+            f"⚡ <b>Admin Quick Launch</b>\n"
+            f"Tap any section below to open the Admin Console in Telegram:",
+            reply_markup=admin_inline_menu(lang, settings.admin_mini_app_url),
         )
         return
 
