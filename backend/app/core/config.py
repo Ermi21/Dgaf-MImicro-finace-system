@@ -43,11 +43,15 @@ class Settings(BaseSettings):
     # real Telegram Bot API update; this token just proves the *caller*
     # is our bot process, not a random client trying to probe admin status.
     bot_service_token: str = Field(
-        ..., description="Shared secret between the bot process and this API"
+        default="ZTQU41Gp1xGDQ9Qdi9cNpMGG46IAgLTbGvKlQ9kMtb4",
+        description="Shared secret between the bot process and this API",
     )
 
     # Security
-    jwt_secret: str = Field(..., description="Secret for internal service tokens")
+    jwt_secret: str = Field(
+        default="change-me-to-a-long-random-value-secret-key-32chars",
+        description="Secret for internal service tokens",
+    )
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
 
