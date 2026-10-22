@@ -36,6 +36,14 @@ class Settings(BaseSettings):
     # Telegram
     telegram_bot_token: str = Field(..., description="Telegram Bot API token")
     telegram_initdata_max_age_seconds: int = 86400
+    user_mini_app_url: str = Field(
+        default="https://job-platform-user.vercel.app",
+        description="Customer Mini App URL",
+    )
+    admin_mini_app_url: str = Field(
+        default="https://job-platform-admin-six.vercel.app",
+        description="Admin Mini App URL",
+    )
 
     # Trusted service-to-service channel used ONLY by our own aiogram bot
     # process (never exposed to the Mini App or any public client) - the
