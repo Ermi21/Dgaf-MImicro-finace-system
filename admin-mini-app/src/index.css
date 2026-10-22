@@ -1829,4 +1829,47 @@ button {
   }
 }
 
+/* --- Admin Footer Copyright --- */
+.admin-footer-copyright {
+  margin-top: 48px;
+  padding: 24px 16px 36px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.admin-footer-logo-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.admin-footer-brand-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #cbd5e1;
+  letter-spacing: -0.01em;
+}
+
+.admin-footer-rights-paragraph {
+  margin: 0;
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1.5;
+  max-width: 500px;
+}
+
+@media (max-width: 768px) {
+  .admin-footer-copyright {
+    margin-top: 24px;
+    padding: 16px 12px 90px;
+  }
+}
+
+
 

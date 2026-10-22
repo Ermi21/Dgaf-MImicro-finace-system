@@ -86,6 +86,13 @@ export function HomePage({ onNavigate }: { onNavigate: (view: View) => void }) {
         <ShieldCheckIcon width={14} height={14} />
         <span>Verified customer registration & Employment Network</span>
       </div>
+
+      {/* ─── Rights Footer ─── */}
+      <div style={{ textAlign: "center", marginTop: "12px", paddingBottom: "24px" }}>
+        <p style={{ margin: 0, fontSize: "11px", color: "var(--tg-hint, #64748b)" }}>
+          © {new Date().getFullYear()} Digaf Microfinance Institution. All rights reserved.
+        </p>
+      </div>
     </div>
   );
 }

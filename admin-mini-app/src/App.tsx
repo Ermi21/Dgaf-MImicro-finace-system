@@ -251,6 +251,17 @@ export default function App() {
               )}
             </>
           )}
+
+          {/* Digaf Footer with Logo and Rights Description */}
+          <footer className="admin-footer-copyright">
+            <div className="admin-footer-logo-row">
+              <DigafLogo size={20} adminBadge={false} />
+              <span className="admin-footer-brand-title">Digaf Microfinance Institution</span>
+            </div>
+            <p className="admin-footer-rights-paragraph">
+              © {new Date().getFullYear()} Digaf Microfinance Institution. All rights reserved.
+            </p>
+          </footer>
         </main>
       </div>
     </I18nContext.Provider>
