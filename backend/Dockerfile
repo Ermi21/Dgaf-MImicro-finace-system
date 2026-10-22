@@ -12,7 +12,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml ./
-RUN pip install --upgrade pip && pip install .
+RUN pip install --upgrade pip && pip install "greenlet>=3.0.0" .
 
 COPY app ./app
 COPY alembic ./alembic
