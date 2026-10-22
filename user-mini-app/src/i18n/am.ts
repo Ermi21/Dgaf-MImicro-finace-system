@@ -58,6 +58,8 @@ const am: typeof en = {
     duplicateError: "ለዚህ ስራ ቀድሞውኑ ንቁ ምዝገባ አለዎት።",
     validationRequired: "ይህ መስክ ያስፈልጋል።",
     validationPhone: "ትክክለኛ የኢትዮጵያ ስልክ ቁጥር ያስገቡ።",
+    validationNameLetters: "ስም ፊደላትን ብቻ መያዝ አለበት (ቁጥር ወይም ምልክት አይፈቀድም)።",
+    validationNationalId: "የመታወቂያ ቁጥር እስከ 16 አሃዞችን የያዘ ቁጥር ብቻ መሆን አለበት።",
   },
   profile: {
     title: "መገለጫዬ",

@@ -55,6 +55,8 @@ const en = {  common: {
     duplicateError: "You already have an active registration for this job.",
     validationRequired: "This field is required.",
     validationPhone: "Enter a valid Ethiopian mobile number.",
+    validationNameLetters: "Name must contain letters only (no numbers or symbols).",
+    validationNationalId: "National ID must contain numbers only (up to 16 digits).",
   },
   profile: {
     title: "My Profile",

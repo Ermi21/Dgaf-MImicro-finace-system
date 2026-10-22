@@ -7,6 +7,7 @@ commit-on-success / rollback-on-error and always closes the session.
 
 from __future__ import annotations
 
+import uuid
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
@@ -16,11 +17,20 @@ from app.core.config import get_settings
 
 settings = get_settings()
 
-_engine_kwargs: dict = {"pool_pre_ping": True, "echo": False}
+_engine_kwargs: dict = {
+    "pool_pre_ping": True,
+    "echo": False,
+}
 if not settings.database_url.startswith("sqlite"):
-    # SQLite (used in the test suite) doesn't support QueuePool sizing
-    # kwargs - only apply them for the real Postgres/Supabase engine.
-    _engine_kwargs.update(pool_size=5, max_overflow=10)
+    _engine_kwargs.update(
+        pool_size=5,
+        max_overflow=10,
+        connect_args={
+            "statement_cache_size": 0,
+            "prepared_statement_cache_size": 0,
+            "prepared_statement_name_func": lambda: f"__stmt_{uuid.uuid4().hex}__",
+        },
+    )
 
 engine = create_async_engine(settings.database_url, **_engine_kwargs)
 

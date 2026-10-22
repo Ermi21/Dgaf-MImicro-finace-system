@@ -17,6 +17,8 @@ from app.core.logging import get_logger
 
 logger = get_logger(__name__)
 
+HTTP_422_UNPROCESSABLE_CONTENT = 422
+
 
 class DomainError(Exception):
     """Base class for all business-rule / domain errors."""
@@ -37,7 +39,7 @@ class NotFoundError(DomainError):
 
 
 class ValidationFailedError(DomainError):
-    status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
+    status_code = HTTP_422_UNPROCESSABLE_CONTENT
     code = "validation_failed"
 
 
@@ -52,12 +54,12 @@ class InvalidStatusTransitionError(DomainError):
 
 
 class InvalidLocationHierarchyError(DomainError):
-    status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
+    status_code = HTTP_422_UNPROCESSABLE_CONTENT
     code = "invalid_location_hierarchy"
 
 
 class InactiveResourceError(DomainError):
-    status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
+    status_code = HTTP_422_UNPROCESSABLE_CONTENT
     code = "inactive_resource"
 
 

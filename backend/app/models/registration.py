@@ -9,9 +9,10 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
-from app.models.enums import EmploymentType, RegistrationStatus
+from app.models.enums import EmploymentType, Gender, ReferralType, RegistrationStatus, Sex
 
 if TYPE_CHECKING:
+    from app.models.admin import Admin
     from app.models.job import Job
     from app.models.location import City, Subcity, Woreda
     from app.models.user import User
@@ -26,13 +27,9 @@ class Registration(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         Index("ix_registrations_subcity_id", "subcity_id"),
         Index("ix_registrations_woreda_id", "woreda_id"),
         Index("ix_registrations_created_at", "created_at"),
-        # A user may register for many different jobs, but not twice for
-        # the SAME job while a prior registration for it is still "live"
-        # (not REJECTED/CANCELLED). Enforced primarily in the service
-        # layer (see RegistrationService) because the definition of
-        # "active" spans multiple statuses; this index just makes that
-        # lookup fast.
         Index("ix_registrations_user_job", "user_id", "job_id"),
+        Index("ix_registrations_referral_type", "referral_type"),
+        Index("ix_registrations_referral_name", "referral_name"),
     )
 
     user_id: Mapped[uuid.UUID] = mapped_column(
@@ -54,6 +51,22 @@ class Registration(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     employment_type: Mapped[EmploymentType] = mapped_column(
         Enum(EmploymentType, name="employment_type", native_enum=True), nullable=False
     )
+    gender: Mapped[Gender | None] = mapped_column(
+        Enum(Gender, name="gender", native_enum=True), nullable=True
+    )
+    national_id: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # Referral system
+    referral_type: Mapped[ReferralType | None] = mapped_column(
+        Enum(ReferralType, name="referral_type", native_enum=True),
+        nullable=True,
+        default=ReferralType.NONE,
+    )
+    referral_name: Mapped[str | None] = mapped_column(Text, nullable=True)
+    referral_admin_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("admins.id", ondelete="SET NULL"), nullable=True
+    )
+
     status: Mapped[RegistrationStatus] = mapped_column(
         Enum(RegistrationStatus, name="registration_status", native_enum=True),
         nullable=False,
@@ -82,6 +95,17 @@ class Registration(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     city: Mapped[City] = relationship()
     subcity: Mapped[Subcity] = relationship()
     woreda: Mapped[Woreda] = relationship()
+    referral_admin: Mapped[Admin | None] = relationship(foreign_keys=[referral_admin_id])
+
+    @property
+    def sex(self) -> Gender | None:
+        """Backward-compatibility alias."""
+        return self.gender
+
+    @sex.setter
+    def sex(self, value: Gender | None) -> None:
+        self.gender = value
 
     def __repr__(self) -> str:  # pragma: no cover
         return f"<Registration id={self.id} status={self.status}>"
+

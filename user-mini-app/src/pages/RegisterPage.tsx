@@ -126,9 +126,32 @@ export function RegisterPage({
   function validateStep(current: Step): boolean {
     const next: Partial<Record<keyof FormData, string>> = {};
     if (current === 1) {
-      if (!form.first_name.trim()) next.first_name = t.register.validationRequired;
-      if (!form.second_name.trim()) next.second_name = t.register.validationRequired;
+      // Name must be letters only (supports Latin and Ethiopian Ge'ez/Amharic script), spaces, hyphens, and apostrophes
+      const nameRegex = /^[\p{L}\s\-']{2,100}$/u;
+
+      const fName = form.first_name.trim();
+      if (!fName) {
+        next.first_name = t.register.validationRequired;
+      } else if (!nameRegex.test(fName) || /\d/.test(fName)) {
+        next.first_name = t.register.validationNameLetters;
+      }
+
+      const sName = form.second_name.trim();
+      if (!sName) {
+        next.second_name = t.register.validationRequired;
+      } else if (!nameRegex.test(sName) || /\d/.test(sName)) {
+        next.second_name = t.register.validationNameLetters;
+      }
+
       if (!form.gender) next.gender = t.register.validationRequired;
+
+      if (form.national_id && form.national_id.trim()) {
+        const cleanId = form.national_id.replace(/[\s-]/g, "");
+        if (!/^\d+$/.test(cleanId) || cleanId.length > 16) {
+          next.national_id = t.register.validationNationalId;
+        }
+      }
+
       if (!form.phone.trim()) {
         next.phone = t.register.validationRequired;
       } else if (!/^(\+?251|0)?[79]\d{8}$/.test(form.phone.trim())) {
@@ -184,8 +207,7 @@ export function RegisterPage({
         job_id: resolvedJobId || form.job_id || jobs[0]?.id || "",
         employment_type: form.employment_type as "EMPLOYEE" | "SELF_EMPLOYED",
         gender: form.gender || undefined,
-        sex: form.gender || undefined,
-        national_id: form.national_id.trim() || undefined,
+        national_id: form.national_id ? form.national_id.replace(/[\s-]/g, "") || undefined : undefined,
         referral_type: form.referral_type,
         referral_name: form.referral_name.trim() || undefined,
       };
@@ -345,6 +367,8 @@ export function RegisterPage({
             placeholder={t.register.nationalIdHint}
             value={form.national_id}
             error={errors.national_id}
+            inputMode="numeric"
+            maxLength={19}
             onChange={(e) => update("national_id", e.target.value)}
           />
           <TextField

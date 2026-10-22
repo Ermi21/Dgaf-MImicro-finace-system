@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import selectinload
 
 from app.models.enums import NotificationStatus
@@ -32,6 +32,28 @@ class NotificationRepository(BaseRepository[Notification]):
             select(Notification.status, func.count()).group_by(Notification.status)
         )
         return {status.value: count for status, count in result.all()}
+
+    async def delete_by_id(self, id_: uuid.UUID | str) -> bool:
+        try:
+            parsed_id = id_ if isinstance(id_, uuid.UUID) else uuid.UUID(str(id_))
+        except (ValueError, TypeError):
+            return False
+        await self.session.execute(
+            delete(NotificationRecipient).where(NotificationRecipient.notification_id == parsed_id)
+        )
+        res = await self.session.execute(
+            delete(Notification).where(Notification.id == parsed_id)
+        )
+        await self.session.flush()
+        return (res.rowcount or 0) > 0
+
+    async def clear_all(self) -> int:
+        await self.session.execute(delete(NotificationRecipient))
+        res = await self.session.execute(delete(Notification))
+        await self.session.flush()
+        return res.rowcount or 0
+
+
 
 
 class NotificationRecipientRepository(BaseRepository[NotificationRecipient]):

@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import socket
 
 import structlog
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
+from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.enums import ParseMode
 
 from app.config import get_settings
@@ -31,9 +33,13 @@ async def main() -> None:
     _configure_logging(settings.log_level)
     logger = structlog.get_logger("telegram_bot")
 
+    session = AiohttpSession(limit=10)
+    session._connector_init["family"] = socket.AF_INET
+
     bot = Bot(
         token=settings.telegram_bot_token,
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
+        session=session,
     )
     dp = Dispatcher()
 
@@ -53,7 +59,22 @@ async def main() -> None:
 
     logger.info("bot_starting")
     await bot.delete_webhook(drop_pending_updates=True)
-    await dp.start_polling(bot)
+    if settings.user_mini_app_url:
+        try:
+            from aiogram.types import MenuButtonWebApp, WebAppInfo
+            await bot.set_chat_menu_button(
+                menu_button=MenuButtonWebApp(
+                    text="Register now",
+                    web_app=WebAppInfo(url=settings.user_mini_app_url),
+                )
+            )
+            logger.info("menu_button_updated", url=settings.user_mini_app_url)
+        except Exception as e:
+            logger.warning("failed_to_set_menu_button", error=str(e))
+    try:
+        await dp.start_polling(bot)
+    finally:
+        await bot.session.close()
 
 
 if __name__ == "__main__":

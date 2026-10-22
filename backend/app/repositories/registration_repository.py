@@ -34,6 +34,7 @@ class RegistrationRepository(BaseRepository[Registration]):
                 selectinload(Registration.city),
                 selectinload(Registration.subcity),
                 selectinload(Registration.woreda),
+                selectinload(Registration.referral_admin),
             )
             .where(Registration.id == id_)
         )
@@ -53,6 +54,37 @@ class RegistrationRepository(BaseRepository[Registration]):
         )
         return (result.scalar_one() or 0) > 0
 
+    async def get_active_registration_for_job(
+        self, *, user_id: uuid.UUID, job_id: uuid.UUID
+    ) -> Registration | None:
+        """Return the active registration (PENDING/APPROVED/SUSPENDED) for this
+        user+job combination, or None if the user is free to register again."""
+        result = await self.session.execute(
+            select(Registration)
+            .where(
+                Registration.user_id == user_id,
+                Registration.job_id == job_id,
+                Registration.status.in_(_ACTIVE_STATUSES),
+            )
+            .limit(1)
+        )
+        return result.scalar_one_or_none()
+
+    async def get_any_active_registration_for_user(
+        self, *, user_id: uuid.UUID
+    ) -> Registration | None:
+        """Return any active registration (PENDING/APPROVED/SUSPENDED) for this
+        user across ALL jobs. Enforces the one-registration-per-user rule."""
+        result = await self.session.execute(
+            select(Registration)
+            .where(
+                Registration.user_id == user_id,
+                Registration.status.in_(_ACTIVE_STATUSES),
+            )
+            .limit(1)
+        )
+        return result.scalar_one_or_none()
+
     async def search(self, filters: RegistrationFilter) -> tuple[list[Registration], int]:
         stmt = (
             select(Registration)
@@ -67,6 +99,7 @@ class RegistrationRepository(BaseRepository[Registration]):
                 selectinload(Registration.city),
                 selectinload(Registration.subcity),
                 selectinload(Registration.woreda),
+                selectinload(Registration.referral_admin),
             )
         )
 
@@ -89,6 +122,12 @@ class RegistrationRepository(BaseRepository[Registration]):
             stmt = stmt.where(Registration.woreda_id == filters.woreda_id)
         if filters.employment_type:
             stmt = stmt.where(Registration.employment_type == filters.employment_type)
+        if filters.gender:
+            stmt = stmt.where(Registration.gender == filters.gender)
+        if filters.referral_type:
+            stmt = stmt.where(Registration.referral_type == filters.referral_type)
+        if filters.referrer_name:
+            stmt = stmt.where(Registration.referral_name.ilike(f"%{filters.referrer_name}%"))
         if filters.date_from:
             stmt = stmt.where(Registration.created_at >= filters.date_from)
         if filters.date_to:
@@ -122,8 +161,24 @@ class RegistrationRepository(BaseRepository[Registration]):
         )
         return list(result.scalars().all())
 
+    async def list_for_telegram_id(self, telegram_id: int) -> list[Registration]:
+        result = await self.session.execute(
+            select(Registration)
+            .join(User, User.id == Registration.user_id)
+            .options(
+                selectinload(Registration.job),
+                selectinload(Registration.city),
+                selectinload(Registration.subcity),
+                selectinload(Registration.woreda),
+            )
+            .where(User.telegram_id == telegram_id)
+            .order_by(Registration.created_at.desc())
+        )
+        return list(result.scalars().all())
+
     async def count_by_status(self) -> dict[str, int]:
         result = await self.session.execute(
             select(Registration.status, func.count()).group_by(Registration.status)
         )
         return {status.value: count for status, count in result.all()}
+

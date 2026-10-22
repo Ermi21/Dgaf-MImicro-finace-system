@@ -32,11 +32,13 @@ app = FastAPI(
     redoc_url="/redoc" if not settings.is_production else None,
 )
 
+_cors_origins = ["*"] if settings.environment == "development" else (settings.cors_origins_list or [])
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins_list or [],
+    allow_origins=_cors_origins,
     allow_credentials=False,
-    allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE"],
+    allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
 )
 

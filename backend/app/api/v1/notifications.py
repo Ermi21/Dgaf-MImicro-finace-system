@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Response, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -40,7 +40,7 @@ async def send_notification(
 ) -> NotificationRead:
     service = NotificationService(session, settings.telegram_bot_token)
     notification = await service.create_targeted_notification(
-        sender_admin_id=UUID(actor.admin_id),
+        sender_admin_id=UUID(actor.admin_id) if actor.admin_id else None,
         audience_type=payload.audience_type,
         message=payload.message,
         user_id=payload.user_id,
@@ -128,3 +128,46 @@ async def list_notifications(
             )
         )
     return results
+
+
+@router.delete(
+    "/clear-all",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+)
+@router.delete(
+    "",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+)
+@router.delete(
+    "/",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+)
+async def clear_all_notifications(
+    actor: AuthContext = Depends(require_permission(Permissions.NOTIFICATION_VIEW)),
+    session: AsyncSession = Depends(get_db),
+) -> Response:
+    repo = NotificationRepository(session)
+    await repo.clear_all()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.delete(
+    "/{notification_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+)
+async def delete_notification(
+    notification_id: str,
+    actor: AuthContext = Depends(require_permission(Permissions.NOTIFICATION_VIEW)),
+    session: AsyncSession = Depends(get_db),
+) -> Response:
+    repo = NotificationRepository(session)
+    deleted = await repo.delete_by_id(notification_id)
+    if not deleted:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Notification not found")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+

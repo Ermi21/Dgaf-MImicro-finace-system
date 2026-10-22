@@ -8,6 +8,22 @@ class EmploymentType(str, enum.Enum):
     SELF_EMPLOYED = "SELF_EMPLOYED"
 
 
+class Gender(str, enum.Enum):
+    MALE = "MALE"
+    FEMALE = "FEMALE"
+
+
+# Backward compatibility alias
+Sex = Gender
+
+
+class ReferralType(str, enum.Enum):
+    NONE = "NONE"
+    ADMIN = "ADMIN"
+    PERSON = "PERSON"
+
+
+
 class RegistrationStatus(str, enum.Enum):
     PENDING = "PENDING"
     APPROVED = "APPROVED"

@@ -26,6 +26,7 @@ from app.core.config import Settings, get_settings
 from app.core.exceptions import AuthenticationError
 from app.core.security import decode_access_token
 from app.database.session import get_db
+from app.permissions.constants import Permissions
 from app.repositories.admin_repository import AdminRepository
 from app.repositories.user_repository import UserRepository
 
@@ -57,6 +58,18 @@ async def get_current_actor(
     session: AsyncSession = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ) -> AuthContext:
+    # Local development preview uses a fake token when the admin Mini App
+    # is opened outside Telegram. This bypass is intentionally limited to
+    # the development environment only.
+    if token == "dev-token" and settings.environment == "development":
+        return AuthContext(
+            telegram_id=0,
+            is_admin=True,
+            admin_id=None,   # NULL in activity_logs — no fake admin row needed
+            role_name="SUPER_ADMIN",
+            permissions=set(Permissions.all()),
+        )
+
     try:
         payload = decode_access_token(
             token, secret=settings.jwt_secret, algorithm=settings.jwt_algorithm

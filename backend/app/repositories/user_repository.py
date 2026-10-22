@@ -10,8 +10,10 @@ class UserRepository(BaseRepository[User]):
     model = User
 
     async def get_by_telegram_id(self, telegram_id: int) -> User | None:
-        result = await self.session.execute(select(User).where(User.telegram_id == telegram_id))
-        return result.scalar_one_or_none()
+        result = await self.session.execute(
+            select(User).where(User.telegram_id == telegram_id).order_by(User.created_at.desc())
+        )
+        return result.scalars().first()
 
     async def get_or_create(
         self,
@@ -22,20 +24,32 @@ class UserRepository(BaseRepository[User]):
         phone: str,
         language: str = "en",
     ) -> User:
-        """Used at registration time - a User row is created lazily the
-        first time someone actually submits a registration, keyed off the
-        Telegram-verified id (never a client-supplied one)."""
-        existing = await self.get_by_telegram_id(telegram_id)
+        """Find an existing customer by exact name and phone, or create a brand new
+        User row. This ensures each customer (even when registered from the same
+        Telegram account) has their own distinct identity and past registration
+        names are NEVER overwritten or clobbered.
+        """
+        result = await self.session.execute(
+            select(User).where(
+                User.phone == phone,
+                func.lower(User.first_name) == first_name.strip().lower(),
+                func.lower(User.second_name) == second_name.strip().lower(),
+            )
+        )
+        existing = result.scalars().first()
         if existing:
+            existing.telegram_id = telegram_id
             return existing
+
         user = User(
             telegram_id=telegram_id,
-            first_name=first_name,
-            second_name=second_name,
+            first_name=first_name.strip(),
+            second_name=second_name.strip(),
             phone=phone,
             language=language,
         )
         return await self.add(user)
+
 
     async def search(
         self, *, query: str | None, page: int, page_size: int

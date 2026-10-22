@@ -3,14 +3,14 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.deps import AuthContext, get_current_actor, require_permission
 from app.core.config import Settings, get_settings
 from app.core.exceptions import PermissionDeniedError
 from app.database.session import get_db
-from app.models.enums import EmploymentType, RegistrationStatus
+from app.models.enums import EmploymentType, Gender, ReferralType, RegistrationStatus
 from app.models.registration import Registration
 from app.permissions.constants import Permissions
 from app.schemas.common import Page
@@ -28,12 +28,20 @@ router = APIRouter(prefix="/registrations", tags=["registrations"])
 
 
 def _to_list_item(reg: Registration) -> RegistrationListItem:
+    admin_name = reg.referral_admin.name if getattr(reg, "referral_admin", None) else None
     return RegistrationListItem(
         id=reg.id,
         created_at=reg.created_at,
         updated_at=reg.updated_at,
         status=reg.status,
         employment_type=reg.employment_type,
+        gender=reg.gender,
+        sex=reg.gender,
+        national_id=reg.national_id,
+        referral_type=reg.referral_type,
+        referral_name=reg.referral_name,
+        referral_admin_id=reg.referral_admin_id,
+        referral_admin_name=admin_name,
         user_first_name=reg.user.first_name,
         user_second_name=reg.user.second_name,
         user_phone=reg.user.phone,
@@ -76,6 +84,11 @@ async def list_my_registrations(
             updated_at=r.updated_at,
             status=r.status,
             employment_type=r.employment_type,
+            gender=r.gender,
+            sex=r.gender,
+            national_id=r.national_id,
+            referral_type=r.referral_type,
+            referral_name=r.referral_name,
             rejection_reason=r.rejection_reason,
             job_name=r.job.name,
             city_name=r.city.name,
@@ -102,6 +115,9 @@ async def search_registrations(
     subcity_id: UUID | None = None,
     woreda_id: UUID | None = None,
     employment_type: EmploymentType | None = None,
+    gender: Gender | None = None,
+    referral_type: ReferralType | None = None,
+    referrer_name: str | None = None,
     date_from: datetime | None = None,
     date_to: datetime | None = None,
     page: int = Query(default=1, ge=1),
@@ -120,6 +136,9 @@ async def search_registrations(
         subcity_id=subcity_id,
         woreda_id=woreda_id,
         employment_type=employment_type,
+        gender=gender,
+        referral_type=referral_type,
+        referrer_name=referrer_name,
         date_from=date_from,
         date_to=date_to,
         page=page,
@@ -157,7 +176,8 @@ async def approve_registration(
     settings: Settings = Depends(get_settings),
 ) -> Registration:
     service = RegistrationService(session, settings)
-    await service.approve(registration_id, admin_id=UUID(actor.admin_id))
+    admin_id = UUID(actor.admin_id) if actor.admin_id else None
+    await service.approve(registration_id, admin_id=admin_id)
     return await service.get_registration_or_raise(registration_id)
 
 
@@ -170,7 +190,8 @@ async def reject_registration(
     settings: Settings = Depends(get_settings),
 ) -> Registration:
     service = RegistrationService(session, settings)
-    await service.reject(registration_id, admin_id=UUID(actor.admin_id), reason=body.reason)
+    admin_id = UUID(actor.admin_id) if actor.admin_id else None
+    await service.reject(registration_id, admin_id=admin_id, reason=body.reason)
     return await service.get_registration_or_raise(registration_id)
 
 
@@ -182,7 +203,8 @@ async def suspend_registration(
     settings: Settings = Depends(get_settings),
 ) -> Registration:
     service = RegistrationService(session, settings)
-    await service.suspend(registration_id, admin_id=UUID(actor.admin_id))
+    admin_id = UUID(actor.admin_id) if actor.admin_id else None
+    await service.suspend(registration_id, admin_id=admin_id)
     return await service.get_registration_or_raise(registration_id)
 
 
@@ -194,7 +216,8 @@ async def resume_registration(
     settings: Settings = Depends(get_settings),
 ) -> Registration:
     service = RegistrationService(session, settings)
-    await service.resume(registration_id, admin_id=UUID(actor.admin_id))
+    admin_id = UUID(actor.admin_id) if actor.admin_id else None
+    await service.resume(registration_id, admin_id=admin_id)
     return await service.get_registration_or_raise(registration_id)
 
 
@@ -206,5 +229,27 @@ async def reset_registration_to_pending(
     settings: Settings = Depends(get_settings),
 ) -> Registration:
     service = RegistrationService(session, settings)
-    await service.reset_to_pending(registration_id, admin_id=UUID(actor.admin_id))
+    admin_id = UUID(actor.admin_id) if actor.admin_id else None
+    await service.reset_to_pending(registration_id, admin_id=admin_id)
     return await service.get_registration_or_raise(registration_id)
+
+
+@router.delete(
+    "/{registration_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+)
+async def delete_registration(
+    registration_id: UUID,
+    actor: AuthContext = Depends(require_permission(Permissions.REGISTRATION_REJECT)),
+    session: AsyncSession = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> Response:
+    """Permanently remove a REJECTED or CANCELLED registration.
+    The record must be rejected or cancelled before it can be deleted."""
+    service = RegistrationService(session, settings)
+    admin_id = UUID(actor.admin_id) if actor.admin_id else None
+    await service.delete_registration(registration_id, admin_id=admin_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+

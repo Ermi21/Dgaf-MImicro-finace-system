@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings
@@ -10,10 +11,13 @@ from app.core.exceptions import (
     InvalidStatusTransitionError,
     NotFoundError,
     PermissionDeniedError,
+    ValidationFailedError,
 )
 from app.database.base import utcnow
-from app.models.enums import ALLOWED_REGISTRATION_TRANSITIONS, RegistrationStatus
+from app.models.admin import Admin
+from app.models.enums import ALLOWED_REGISTRATION_TRANSITIONS, ReferralType, RegistrationStatus
 from app.models.registration import Registration
+from app.repositories.admin_repository import AdminRepository
 from app.repositories.registration_repository import RegistrationRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.registration import RegistrationCreate, RegistrationFilter
@@ -64,8 +68,11 @@ class RegistrationService:
             city_id=payload.city_id, subcity_id=payload.subcity_id, woreda_id=payload.woreda_id
         )
 
-        # 10-11: job existence + active status.
-        job = await self.jobs.get_active_job_or_raise(payload.job_id)
+        # 10-11: Job resolution & validation
+        if payload.job_id is not None:
+            job = await self.jobs.get_active_job_or_raise(payload.job_id)
+        else:
+            job = await self.jobs.infer_active_job_by_employment_type(payload.employment_type)
 
         # 12: employment type already validated by the Pydantic enum field.
 
@@ -80,18 +87,25 @@ class RegistrationService:
             phone=normalized_phone,
         )
 
-        # 14: duplicate-registration rule - same user, same job, while a
-        #     prior registration for it is still "active" (not
-        #     REJECTED/CANCELLED). Different jobs are always allowed.
+        # 14: duplicate-registration rule (one active registration per job).
         if await self.repo.has_active_registration_for_job(user_id=user.id, job_id=job.id):
-            raise DuplicateRegistrationError(
-                "You already have an active registration for this job."
-            )
+            raise DuplicateRegistrationError("You already have an active registration for this job.")
+
 
         # 15: create transactionally. All of the above repo/service calls
         #     share `self.session`; the FastAPI `get_db` dependency commits
         #     once at the end of the request and rolls back the whole
         #     thing on any exception, so this is atomic end-to-end.
+        referral_admin_id = payload.referral_admin_id
+        if not referral_admin_id and payload.referral_type == ReferralType.ADMIN and payload.referral_name:
+            admin_match = await self.session.execute(
+                select(Admin.id).where(func.lower(func.trim(Admin.name)) == payload.referral_name.strip().lower())
+            )
+            matched_id = admin_match.scalars().first()
+            if matched_id:
+                referral_admin_id = matched_id
+
+        gender_val = payload.gender or payload.sex
         registration = Registration(
             user_id=user.id,
             job_id=job.id,
@@ -99,6 +113,11 @@ class RegistrationService:
             subcity_id=payload.subcity_id,
             woreda_id=payload.woreda_id,
             employment_type=payload.employment_type,
+            gender=gender_val,
+            national_id=payload.national_id,
+            referral_type=payload.referral_type,
+            referral_name=payload.referral_name,
+            referral_admin_id=referral_admin_id,
             status=RegistrationStatus.PENDING,
         )
         registration = await self.repo.add(registration)
@@ -137,10 +156,7 @@ class RegistrationService:
         return registration
 
     async def list_own_registrations(self, *, telegram_id: int) -> list[Registration]:
-        user = await self.user_repo.get_by_telegram_id(telegram_id)
-        if not user:
-            return []
-        return await self.repo.list_for_user(user.id)
+        return await self.repo.list_for_telegram_id(telegram_id)
 
     async def search(self, filters: RegistrationFilter) -> tuple[list[Registration], int]:
         return await self.repo.search(filters)
@@ -161,7 +177,7 @@ class RegistrationService:
                 f"Cannot move a registration from {current.value} to {target.value}"
             )
 
-    async def approve(self, registration_id: uuid.UUID, *, admin_id: uuid.UUID) -> Registration:
+    async def approve(self, registration_id: uuid.UUID, *, admin_id: uuid.UUID | None) -> Registration:
         registration = await self.get_registration_or_raise(registration_id)
         self._assert_transition_allowed(registration.status, RegistrationStatus.APPROVED)
 
@@ -185,7 +201,7 @@ class RegistrationService:
         return registration
 
     async def reject(
-        self, registration_id: uuid.UUID, *, admin_id: uuid.UUID, reason: str
+        self, registration_id: uuid.UUID, *, admin_id: uuid.UUID | None, reason: str
     ) -> Registration:
         registration = await self.get_registration_or_raise(registration_id)
         self._assert_transition_allowed(registration.status, RegistrationStatus.REJECTED)
@@ -210,7 +226,7 @@ class RegistrationService:
         )
         return registration
 
-    async def suspend(self, registration_id: uuid.UUID, *, admin_id: uuid.UUID) -> Registration:
+    async def suspend(self, registration_id: uuid.UUID, *, admin_id: uuid.UUID | None) -> Registration:
         registration = await self.get_registration_or_raise(registration_id)
         self._assert_transition_allowed(registration.status, RegistrationStatus.SUSPENDED)
 
@@ -233,7 +249,7 @@ class RegistrationService:
         )
         return registration
 
-    async def resume(self, registration_id: uuid.UUID, *, admin_id: uuid.UUID) -> Registration:
+    async def resume(self, registration_id: uuid.UUID, *, admin_id: uuid.UUID | None) -> Registration:
         """SUSPENDED -> APPROVED, per the transition table in spec section 8."""
         registration = await self.get_registration_or_raise(registration_id)
         self._assert_transition_allowed(registration.status, RegistrationStatus.APPROVED)
@@ -258,7 +274,7 @@ class RegistrationService:
         return registration
 
     async def reset_to_pending(
-        self, registration_id: uuid.UUID, *, admin_id: uuid.UUID
+        self, registration_id: uuid.UUID, *, admin_id: uuid.UUID | None
     ) -> Registration:
         """REJECTED -> PENDING, per the transition table in spec section 8
         (e.g. an admin decides to give a rejected application another look)."""
@@ -278,3 +294,27 @@ class RegistrationService:
             new_value={"status": RegistrationStatus.PENDING.value},
         )
         return registration
+
+    async def delete_registration(
+        self, registration_id: uuid.UUID, *, admin_id: uuid.UUID | None
+    ) -> None:
+        """Permanently delete a REJECTED or CANCELLED registration record.
+        Active (PENDING/APPROVED/SUSPENDED) registrations cannot be deleted —
+        they must be rejected/cancelled first."""
+        registration = await self.get_registration_or_raise(registration_id)
+        if registration.status not in (RegistrationStatus.REJECTED, RegistrationStatus.CANCELLED):
+            from app.core.exceptions import ValidationFailedError
+            raise ValidationFailedError(
+                f"Cannot delete a registration with status '{registration.status.value}'. "
+                "Only REJECTED or CANCELLED registrations can be deleted."
+            )
+
+        await self.activity_log.record(
+            admin_id=admin_id,
+            action="registration.deleted",
+            entity_type="registration",
+            entity_id=str(registration_id),
+            old_value={"status": registration.status.value},
+            new_value=None,
+        )
+        await self.session.delete(registration)
