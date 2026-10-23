@@ -11,8 +11,8 @@ from app.core.exceptions import NotFoundError
 from app.database.session import get_db
 from app.models.user import User
 from app.permissions.constants import Permissions
-from app.repositories.activity_log_repository import ActivityLogRepository
 from app.repositories.user_repository import UserRepository
+from app.services.activity_log_service import ActivityLogService
 from app.schemas.common import Page
 from app.schemas.user import UserRead
 
@@ -99,14 +99,30 @@ async def delete_user(
         raise NotFoundError("Customer not found")
 
     admin_id = UUID(actor.admin_id) if actor.admin_id else None
-    log_repo = ActivityLogRepository(session)
-    await log_repo.record(
-        admin_id=admin_id,
-        action="user.deleted",
-        entity_type="user",
-        entity_id=str(user_id),
-        old_value={"name": f"{user.first_name} {user.second_name}", "phone": user.phone},
-        new_value=None,
+    try:
+        activity_log = ActivityLogService(session)
+        await activity_log.record(
+            admin_id=admin_id,
+            action="user.deleted",
+            entity_type="user",
+            entity_id=str(user_id),
+            old_value={"name": f"{user.first_name} {user.second_name}", "phone": user.phone},
+            new_value=None,
+        )
+    except Exception:
+        # Don't let audit log failures block record deletion
+        pass
+
+    # Clean up associated records explicitly before removing user
+    from sqlalchemy import delete
+    from app.models.notification import NotificationRecipient
+    from app.models.registration import Registration
+
+    await session.execute(
+        delete(NotificationRecipient).where(NotificationRecipient.user_id == user_id)
+    )
+    await session.execute(
+        delete(Registration).where(Registration.user_id == user_id)
     )
     await session.delete(user)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

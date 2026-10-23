@@ -299,10 +299,20 @@ export function UsersPage() {
           confirmLabel={deleting ? "Deleting..." : "Permanently Delete Customer"}
           confirmDisabled={deleting}
           busy={deleting}
-          onCancel={() => !deleting && setCustomerToDelete(null)}
+          onCancel={() => {
+            if (!deleting) {
+              setCustomerToDelete(null);
+              setDeleteError(null);
+            }
+          }}
           onConfirm={handleDeleteCustomer}
         >
           <div style={{ color: "var(--tg-text, #fff)", fontSize: 13.5, lineHeight: 1.6 }}>
+            {deleteError && (
+              <div style={{ marginBottom: 12 }}>
+                <ErrorBanner message={deleteError} />
+              </div>
+            )}
             <p style={{ margin: "0 0 12px", color: "#f87171", fontWeight: 600 }}>
               ⚠️ {t.users.deleteCustomerWarning}
             </p>
