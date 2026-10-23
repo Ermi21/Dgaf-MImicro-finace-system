@@ -154,17 +154,24 @@ async function request<T>(
   });
 
   if (!response.ok) {
-    let parsed: ApiError | null = null;
+    let parsed: any = null;
     try {
       parsed = await response.json();
     } catch {
       // response wasn't JSON - fall through to the generic error below
     }
-    throw new ApiRequestError(
-      response.status,
-      parsed?.error.code ?? "request_failed",
-      parsed?.error.message ?? `Request failed (${response.status})`,
-    );
+    const code =
+      parsed?.error?.code ??
+      (typeof parsed?.detail === "string" ? "api_error" : "request_failed");
+    const message =
+      parsed?.error?.message ??
+      (typeof parsed?.detail === "string"
+        ? parsed.detail
+        : Array.isArray(parsed?.detail)
+          ? parsed.detail.map((d: any) => d.msg || JSON.stringify(d)).join(", ")
+          : `Request failed (${response.status})`);
+
+    throw new ApiRequestError(response.status, code, message);
   }
 
   if (response.status === 204) return undefined as T;
