@@ -132,7 +132,9 @@ export function RegistrationsPage() {
             label={t.registrations.filterJob}
             value={jobId}
             placeholder={t.registrations.allJobs}
-            options={jobsState.data.map((j) => ({ value: j.id, label: j.name }))}
+            options={jobsState.data
+              .filter((j) => ["Employee", "Self-employed"].includes(j.name))
+              .map((j) => ({ value: j.id, label: j.name }))}
             onChange={setJobId}
           />
         )}
