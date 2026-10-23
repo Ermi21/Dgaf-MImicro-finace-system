@@ -12,7 +12,14 @@ class CityRepository(BaseRepository[City]):
     model = City
 
     async def list_active(self) -> list[City]:
-        result = await self.session.execute(select(City).where(City.is_active.is_(True)))
+        result = await self.session.execute(select(City).where(City.is_active.is_(True)).order_by(City.name))
+        return list(result.scalars().all())
+
+    async def list_all(self, include_inactive: bool = False) -> list[City]:
+        stmt = select(City).order_by(City.name)
+        if not include_inactive:
+            stmt = stmt.where(City.is_active.is_(True))
+        result = await self.session.execute(stmt)
         return list(result.scalars().all())
 
 
@@ -21,8 +28,15 @@ class SubcityRepository(BaseRepository[Subcity]):
 
     async def list_active_by_city(self, city_id: uuid.UUID) -> list[Subcity]:
         result = await self.session.execute(
-            select(Subcity).where(Subcity.city_id == city_id, Subcity.is_active.is_(True))
+            select(Subcity).where(Subcity.city_id == city_id, Subcity.is_active.is_(True)).order_by(Subcity.name)
         )
+        return list(result.scalars().all())
+
+    async def list_by_city(self, city_id: uuid.UUID, include_inactive: bool = False) -> list[Subcity]:
+        stmt = select(Subcity).where(Subcity.city_id == city_id).order_by(Subcity.name)
+        if not include_inactive:
+            stmt = stmt.where(Subcity.is_active.is_(True))
+        result = await self.session.execute(stmt)
         return list(result.scalars().all())
 
     async def belongs_to_city(self, subcity_id: uuid.UUID, city_id: uuid.UUID) -> bool:
@@ -35,8 +49,15 @@ class WoredaRepository(BaseRepository[Woreda]):
 
     async def list_active_by_subcity(self, subcity_id: uuid.UUID) -> list[Woreda]:
         result = await self.session.execute(
-            select(Woreda).where(Woreda.subcity_id == subcity_id, Woreda.is_active.is_(True))
+            select(Woreda).where(Woreda.subcity_id == subcity_id, Woreda.is_active.is_(True)).order_by(Woreda.name)
         )
+        return list(result.scalars().all())
+
+    async def list_by_subcity(self, subcity_id: uuid.UUID, include_inactive: bool = False) -> list[Woreda]:
+        stmt = select(Woreda).where(Woreda.subcity_id == subcity_id).order_by(Woreda.name)
+        if not include_inactive:
+            stmt = stmt.where(Woreda.is_active.is_(True))
+        result = await self.session.execute(stmt)
         return list(result.scalars().all())
 
     async def belongs_to_subcity(self, woreda_id: uuid.UUID, subcity_id: uuid.UUID) -> bool:

@@ -177,7 +177,13 @@ class RegistrationService:
                 f"Cannot move a registration from {current.value} to {target.value}"
             )
 
-    async def approve(self, registration_id: uuid.UUID, *, admin_id: uuid.UUID | None) -> Registration:
+    async def approve(
+        self,
+        registration_id: uuid.UUID,
+        *,
+        admin_id: uuid.UUID | None,
+        message: str | None = None,
+    ) -> Registration:
         registration = await self.get_registration_or_raise(registration_id)
         self._assert_transition_allowed(registration.status, RegistrationStatus.APPROVED)
 
@@ -194,10 +200,20 @@ class RegistrationService:
             old_value={"status": old_status.value},
             new_value={"status": RegistrationStatus.APPROVED.value},
         )
-        await self.notifications.notify_registration_event(
-            user_id=registration.user_id,
-            message=_MESSAGES["approved"].format(job=registration.job.name),
+        notif_text = (
+            message.strip()
+            if message and message.strip()
+            else _MESSAGES["approved"].format(job=registration.job.name)
         )
+        notif = await self.notifications.notify_registration_event(
+            user_id=registration.user_id,
+            message=notif_text,
+        )
+        try:
+            await self.notifications.dispatch(notif.id)
+        except Exception as exc:
+            logger.warning("approve_notification_dispatch_failed", error=str(exc))
+
         return registration
 
     async def reject(
@@ -220,10 +236,15 @@ class RegistrationService:
             old_value={"status": old_status.value},
             new_value={"status": RegistrationStatus.REJECTED.value, "reason": reason},
         )
-        await self.notifications.notify_registration_event(
+        notif = await self.notifications.notify_registration_event(
             user_id=registration.user_id,
             message=_MESSAGES["rejected"].format(job=registration.job.name, reason=reason),
         )
+        try:
+            await self.notifications.dispatch(notif.id)
+        except Exception as exc:
+            logger.warning("reject_notification_dispatch_failed", error=str(exc))
+
         return registration
 
     async def suspend(self, registration_id: uuid.UUID, *, admin_id: uuid.UUID | None) -> Registration:

@@ -99,7 +99,7 @@ export default function App() {
       )}
       {visited.has("notifications") && (
         <div style={{ display: view === "notifications" ? "block" : "none" }}>
-          <NotificationsPage />
+          <NotificationsPage isActive={view === "notifications"} />
         </div>
       )}
       {visited.has("referrals") && (

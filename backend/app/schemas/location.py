@@ -9,6 +9,7 @@ from app.schemas.common import TimestampedRead
 
 class CityCreate(BaseModel):
     name: str = Field(..., min_length=2, max_length=100)
+    auto_populate: bool = Field(default=True, description="Automatically populate official subcities and woredas")
 
     @field_validator("name")
     @classmethod

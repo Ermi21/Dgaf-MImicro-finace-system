@@ -83,31 +83,33 @@ export function JobsPage() {
 
       {state.status === "loading" && <LoadingSpinner />}
       {state.status === "error" && <ErrorBanner message={state.message} onRetry={state.reload} />}
-      {state.status === "success" && state.data.length === 0 && (
-        <EmptyState title={t.common.noResults} />
-      )}
-
-      {state.status === "success" && state.data.length > 0 && (
-        <div className="card">
-          {state.data.map((job) => (
-            <div className="list-item" key={job.id}>
-              <div className="list-item-header">
-                <span className="list-item-title">{job.name}</span>
-                <span className={`badge ${job.is_active ? "badge-approved" : "badge-cancelled"}`}>
-                  {job.is_active ? t.common.active : t.common.inactive}
-                </span>
-              </div>
-              {job.description && <div className="list-item-meta">{job.description}</div>}
-              <IfPermitted permission={Permissions.JOB_ACTIVATE}>
-                <div style={{ marginTop: 8 }}>
-                  <Button variant="secondary" onClick={() => toggleActive(job)}>
-                    {job.is_active ? t.jobs.deactivate : t.jobs.activate}
-                  </Button>
+      {state.status === "success" && (
+        (() => {
+          const activeJobs = state.data.filter((job) => ["Employee", "Self-employed"].includes(job.name));
+          if (activeJobs.length === 0) return <EmptyState title={t.common.noResults} />;
+          return (
+            <div className="card">
+              {activeJobs.map((job) => (
+                <div className="list-item" key={job.id}>
+                  <div className="list-item-header">
+                    <span className="list-item-title" style={{ fontSize: "15px", fontWeight: 700 }}>💼 {job.name}</span>
+                    <span className={`badge ${job.is_active ? "badge-approved" : "badge-cancelled"}`}>
+                      {job.is_active ? t.common.active : t.common.inactive}
+                    </span>
+                  </div>
+                  {job.description && <div className="list-item-meta">{job.description}</div>}
+                  <IfPermitted permission={Permissions.JOB_ACTIVATE}>
+                    <div style={{ marginTop: 8 }}>
+                      <Button variant="secondary" onClick={() => toggleActive(job)}>
+                        {job.is_active ? t.jobs.deactivate : t.jobs.activate}
+                      </Button>
+                    </div>
+                  </IfPermitted>
                 </div>
-              </IfPermitted>
+              ))}
             </div>
-          ))}
-        </div>
+          );
+        })()
       )}
     </div>
   );

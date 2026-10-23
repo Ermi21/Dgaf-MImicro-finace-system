@@ -163,7 +163,7 @@ export function RegistrationsPage() {
             {/* Header row */}
             <div style={{
               display: "grid",
-              gridTemplateColumns: "1.8fr 1.1fr 0.8fr 1fr 1.2fr 1fr 1fr",
+              gridTemplateColumns: "1.6fr 1.2fr 1.1fr 0.7fr 1fr 1.1fr 1fr 0.9fr",
               gap: "0 8px",
               padding: "10px 16px",
               background: "var(--color-surface-raised, #f5f5f5)",
@@ -175,6 +175,7 @@ export function RegistrationsPage() {
               letterSpacing: "0.5px",
             }}>
               <span>{t.registrations.columnName}</span>
+              <span>{t.registrations.columnNationalId}</span>
               <span>{t.registrations.columnPhone}</span>
               <span>{t.registrations.columnGender}</span>
               <span>{t.registrations.columnJob}</span>
@@ -197,7 +198,7 @@ export function RegistrationsPage() {
                   className="list-item list-item-clickable"
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "1.8fr 1.1fr 0.8fr 1fr 1.2fr 1fr 1fr",
+                    gridTemplateColumns: "1.6fr 1.2fr 1.1fr 0.7fr 1fr 1.1fr 1fr 0.9fr",
                     gap: "0 8px",
                     padding: "12px 16px",
                     alignItems: "center",
@@ -209,6 +210,17 @@ export function RegistrationsPage() {
                 >
                   <span className="list-item-title" style={{ fontWeight: 600 }}>
                     {reg.user_first_name} {reg.user_second_name}
+                  </span>
+                  <span
+                    className="list-item-meta"
+                    style={{
+                      fontFamily: "monospace",
+                      fontSize: 12,
+                      fontWeight: 500,
+                      color: reg.national_id ? "var(--color-primary, #60a5fa)" : "var(--tg-hint, #888)",
+                    }}
+                  >
+                    {reg.national_id || "—"}
                   </span>
                   <span className="list-item-meta">{reg.user_phone}</span>
                   <span className="list-item-meta">
@@ -246,9 +258,49 @@ function RegistrationDetailView({ id, onBack }: { id: string; onBack: () => void
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const [showApproveDialog, setShowApproveDialog] = useState(false);
+  const [approveMessage, setApproveMessage] = useState("");
+  const [showNotifyDialog, setShowNotifyDialog] = useState(false);
+  const [customNotifyMessage, setCustomNotifyMessage] = useState("");
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+
+  async function sendDirectNotification() {
+    if (!customNotifyMessage.trim()) return;
+    setBusy(true);
+    setActionError(null);
+    setActionSuccess(null);
+    try {
+      await api.post(`/api/v1/registrations/${id}/notify`, { message: customNotifyMessage.trim() });
+      setShowNotifyDialog(false);
+      setCustomNotifyMessage("");
+      setActionSuccess("Notification delivered successfully to the applicant.");
+    } catch (err) {
+      setActionError(err instanceof ApiRequestError ? err.message : t.common.somethingWrong);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleApprove() {
+    setBusy(true);
+    setActionError(null);
+    setActionSuccess(null);
+    try {
+      await api.post(`/api/v1/registrations/${id}/approve`, {
+        message: approveMessage.trim() || undefined,
+      });
+      state.reload();
+      setShowApproveDialog(false);
+      setApproveMessage("");
+      setActionSuccess("Registration approved and notification delivered successfully.");
+    } catch (err) {
+      setActionError(err instanceof ApiRequestError ? err.message : t.common.somethingWrong);
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function runAction(action: string, body?: unknown) {
     setBusy(true);
@@ -305,10 +357,11 @@ function RegistrationDetailView({ id, onBack }: { id: string; onBack: () => void
         <>
           <div className="card">
             <Row label={t.registrations.columnName} value={`${state.data.user.first_name} ${state.data.user.second_name}`} />
+            <Row
+              label={t.registrations.columnNationalId}
+              value={state.data.national_id || state.data.user.national_id || "—"}
+            />
             <Row label={t.registrations.columnPhone} value={state.data.user.phone} />
-            {state.data.national_id && (
-              <Row label={t.registrations.columnNationalId} value={state.data.national_id} />
-            )}
             <Row
               label={t.registrations.columnGender}
               value={
@@ -356,12 +409,18 @@ function RegistrationDetailView({ id, onBack }: { id: string; onBack: () => void
             <div className="success-banner" style={{ marginBottom: 8 }}>{actionSuccess}</div>
           )}
 
-          <div className="card action-row">
+          <div className="card action-row" style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             {state.data.status === "PENDING" && (
               <>
                 <IfPermitted permission={Permissions.REGISTRATION_APPROVE}>
-                  <Button onClick={() => runAction("approve")} disabled={busy}>
-                    {t.registrations.approve}
+                  <Button
+                    onClick={() => {
+                      setApproveMessage(`You are qualified for ${state.data.job.name}. Your registration has been approved.`);
+                      setShowApproveDialog(true);
+                    }}
+                    disabled={busy}
+                  >
+                    ✓ {t.registrations.approve}
                   </Button>
                 </IfPermitted>
                 <IfPermitted permission={Permissions.REGISTRATION_REJECT}>
@@ -370,11 +429,25 @@ function RegistrationDetailView({ id, onBack }: { id: string; onBack: () => void
                     onClick={() => setShowRejectDialog(true)}
                     disabled={busy}
                   >
-                    {t.registrations.reject}
+                    ✕ {t.registrations.reject}
                   </Button>
                 </IfPermitted>
               </>
             )}
+
+            {/* Direct message button for any status */}
+            <IfPermitted permission={Permissions.NOTIFICATION_SEND}>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setCustomNotifyMessage("");
+                  setShowNotifyDialog(true);
+                }}
+                disabled={busy}
+              >
+                💬 Send Notification
+              </Button>
+            </IfPermitted>
             {state.data.status === "APPROVED" && (
               <IfPermitted permission={Permissions.REGISTRATION_SUSPEND}>
                 <Button variant="secondary" onClick={() => runAction("suspend")} disabled={busy}>
@@ -412,6 +485,46 @@ function RegistrationDetailView({ id, onBack }: { id: string; onBack: () => void
             )}
           </div>
         </>
+      )}
+
+      {showApproveDialog && (
+        <ConfirmDialog
+          title="Approve Registration"
+          confirmLabel="Approve & Send Notification"
+          confirmDisabled={false}
+          busy={busy}
+          onCancel={() => setShowApproveDialog(false)}
+          onConfirm={handleApprove}
+        >
+          <p style={{ margin: "4px 0 12px", fontSize: 13, color: "var(--tg-hint, #94a3b8)" }}>
+            The applicant will be marked as APPROVED and this message will be delivered to their Telegram chat and notification inbox.
+          </p>
+          <TextField
+            label="Message (e.g. You are qualified for this job or position)"
+            value={approveMessage}
+            onChange={(e) => setApproveMessage(e.target.value)}
+          />
+        </ConfirmDialog>
+      )}
+
+      {showNotifyDialog && (
+        <ConfirmDialog
+          title="Send Notification to Applicant"
+          confirmLabel="Deliver Message"
+          confirmDisabled={customNotifyMessage.trim().length === 0}
+          busy={busy}
+          onCancel={() => setShowNotifyDialog(false)}
+          onConfirm={sendDirectNotification}
+        >
+          <p style={{ margin: "4px 0 12px", fontSize: 13, color: "var(--tg-hint, #94a3b8)" }}>
+            Send a custom message directly to this applicant:
+          </p>
+          <TextField
+            label="Message text"
+            value={customNotifyMessage}
+            onChange={(e) => setCustomNotifyMessage(e.target.value)}
+          />
+        </ConfirmDialog>
       )}
 
       {showRejectDialog && (

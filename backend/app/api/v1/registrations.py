@@ -16,9 +16,11 @@ from app.permissions.constants import Permissions
 from app.schemas.common import Page
 from app.schemas.registration import (
     MyRegistrationItem,
+    RegistrationApproveRequest,
     RegistrationCreate,
     RegistrationFilter,
     RegistrationListItem,
+    RegistrationNotifyRequest,
     RegistrationRead,
     RegistrationRejectRequest,
 )
@@ -171,14 +173,37 @@ async def get_registration(
 @router.post("/{registration_id}/approve", response_model=RegistrationRead)
 async def approve_registration(
     registration_id: UUID,
+    body: RegistrationApproveRequest | None = None,
     actor: AuthContext = Depends(require_permission(Permissions.REGISTRATION_APPROVE)),
     session: AsyncSession = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ) -> Registration:
     service = RegistrationService(session, settings)
     admin_id = UUID(actor.admin_id) if actor.admin_id else None
-    await service.approve(registration_id, admin_id=admin_id)
+    custom_msg = body.message if body else None
+    await service.approve(registration_id, admin_id=admin_id, message=custom_msg)
     return await service.get_registration_or_raise(registration_id)
+
+
+@router.post("/{registration_id}/notify", response_model=dict)
+async def notify_registration_applicant(
+    registration_id: UUID,
+    body: RegistrationNotifyRequest,
+    actor: AuthContext = Depends(require_permission(Permissions.NOTIFICATION_SEND)),
+    session: AsyncSession = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> dict:
+    service = RegistrationService(session, settings)
+    registration = await service.get_registration_or_raise(registration_id)
+    notif = await service.notifications.notify_registration_event(
+        user_id=registration.user_id,
+        message=body.message.strip(),
+    )
+    try:
+        await service.notifications.dispatch(notif.id)
+    except Exception:
+        pass
+    return {"status": "success", "message": "Notification dispatched to applicant"}
 
 
 @router.post("/{registration_id}/reject", response_model=RegistrationRead)

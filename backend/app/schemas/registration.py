@@ -82,6 +82,14 @@ class RegistrationRejectRequest(BaseModel):
         return v
 
 
+class RegistrationApproveRequest(BaseModel):
+    message: str | None = None
+
+
+class RegistrationNotifyRequest(BaseModel):
+    message: str = Field(..., min_length=1, max_length=1000)
+
+
 class RegistrationRead(TimestampedRead):
     status: RegistrationStatus
     employment_type: EmploymentType

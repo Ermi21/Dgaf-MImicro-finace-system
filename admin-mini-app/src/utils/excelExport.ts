@@ -1,5 +1,5 @@
 import * as XLSX from "xlsx";
-import type { DashboardStats, ReferralReport } from "../types";
+import type { DashboardStats, ReferralReport, RegistrationListItem, RegistrationTrends } from "../types";
 
 /**
  * Generates and downloads a multi-sheet Microsoft Excel (.xlsx) file
@@ -153,9 +153,108 @@ export function exportDashboardToExcel(
       XLSX.utils.book_append_sheet(wb, wsApplicants, "Referred Applicants");
     }
 
-    // Write file directly to user download
     XLSX.writeFile(wb, fileName);
   } catch (error) {
     console.error("Failed to export Excel report via SheetJS:", error);
+  }
+}
+
+/**
+ * Generates and downloads a Microsoft Excel (.xlsx) file containing:
+ *  1. Detailed Registrations Table (Name, Phone, National ID, Gender, Job, City, Subcity, Status, Date)
+ *  2. Analytics Summary (Trends by Job and City)
+ */
+export function exportRegistrationsReportToExcel(
+  items: RegistrationListItem[],
+  trends?: RegistrationTrends | null,
+  filterSummary?: string
+) {
+  try {
+    const timestamp = new Date().toISOString().slice(0, 10);
+    const fileName = `Digaf_Registrations_Report_${timestamp}.xlsx`;
+    const wb = XLSX.utils.book_new();
+
+    const headers = [
+      "Applicant Full Name",
+      "Phone Number",
+      "National ID (Fayda)",
+      "Gender",
+      "Job Category",
+      "City",
+      "Subcity / Zone",
+      "Referral Channel",
+      "Referrer Name",
+      "Application Status",
+      "Registration Date",
+    ];
+
+    const rows = items.map((reg) => {
+      const referralInfo =
+        reg.referral_type === "ADMIN"
+          ? (reg.referral_admin_name || reg.referral_name || "Admin")
+          : reg.referral_type === "PERSON"
+            ? (reg.referral_name || "Person")
+            : "Direct (None)";
+
+      return [
+        `${reg.user_first_name} ${reg.user_second_name}`,
+        reg.user_phone,
+        reg.national_id || "N/A",
+        reg.gender || reg.sex || "N/A",
+        reg.job_name,
+        reg.city_name,
+        reg.subcity_name,
+        reg.referral_type,
+        referralInfo,
+        reg.status,
+        reg.created_at ? new Date(reg.created_at).toLocaleString() : "N/A",
+      ];
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet([
+      ["DIGAF JOB PLATFORM - REGISTRATIONS REPORT"],
+      [`Generated: ${new Date().toLocaleString()}`, `Filter: ${filterSummary || "All Records"}`],
+      [],
+      headers,
+      ...rows,
+    ]);
+
+    ws["!cols"] = [
+      { wch: 26 },
+      { wch: 18 },
+      { wch: 22 },
+      { wch: 12 },
+      { wch: 24 },
+      { wch: 18 },
+      { wch: 20 },
+      { wch: 18 },
+      { wch: 22 },
+      { wch: 16 },
+      { wch: 22 },
+    ];
+
+    XLSX.utils.book_append_sheet(wb, ws, "Registrations");
+
+    if (trends) {
+      const jobRows = trends.by_job.map((j) => [j.job, j.count]);
+      const cityRows = trends.by_city.map((c) => [c.city, c.count]);
+
+      const wsAnalytics = XLSX.utils.aoa_to_sheet([
+        ["REGISTRATIONS BREAKDOWN BY JOB"],
+        ["Job Category", "Applicant Count"],
+        ...jobRows,
+        [],
+        ["REGISTRATIONS BREAKDOWN BY CITY"],
+        ["Operating City", "Applicant Count"],
+        ...cityRows,
+      ]);
+
+      wsAnalytics["!cols"] = [{ wch: 30 }, { wch: 18 }];
+      XLSX.utils.book_append_sheet(wb, wsAnalytics, "Trends & Summary");
+    }
+
+    XLSX.writeFile(wb, fileName);
+  } catch (error) {
+    console.error("Failed to export Excel registrations report:", error);
   }
 }

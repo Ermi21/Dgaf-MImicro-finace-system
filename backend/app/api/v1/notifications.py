@@ -22,12 +22,13 @@ router = APIRouter(prefix="/notifications", tags=["notifications"])
 
 
 async def _dispatch_in_background(notification_id: UUID, bot_token: str) -> None:
-    # Uses its own session internally (see NotificationService.dispatch) -
-    # deliberately does NOT reuse the request's session, since it keeps
-    # running after the HTTP response has already been sent.
-    async with session_scope() as session:
-        service = NotificationService(session, bot_token)
+    # NotificationService.dispatch creates its own session_scope internally per recipient
+    # Deliberately do NOT wrap with another outer session_scope to avoid connection pool exhaustion
+    try:
+        service = NotificationService(None, bot_token)
         await service.dispatch(notification_id)
+    except Exception:
+        pass
 
 
 @router.post("", response_model=NotificationRead, status_code=201)
@@ -51,10 +52,20 @@ async def send_notification(
         employment_type=payload.employment_type,
         registration_status=payload.registration_status,
     )
-    # Bulk delivery happens after the response is sent, in a bounded,
-    # rate-limited loop - never blocking this request or the bot's own
-    # event loop (spec section 16).
-    background_tasks.add_task(_dispatch_in_background, notification.id, settings.telegram_bot_token)
+
+    # For INDIVIDUAL notifications, dispatch immediately so customer receives message instantly
+    aud_val = payload.audience_type.value if hasattr(payload.audience_type, "value") else str(payload.audience_type)
+    if aud_val == "INDIVIDUAL":
+        try:
+            dispatch_service = NotificationService(None, settings.telegram_bot_token)
+            await dispatch_service.dispatch(notification.id)
+            refreshed = await service.repo.get_by_id(notification.id)
+            if refreshed:
+                notification = refreshed
+        except Exception:
+            background_tasks.add_task(_dispatch_in_background, notification.id, settings.telegram_bot_token)
+    else:
+        background_tasks.add_task(_dispatch_in_background, notification.id, settings.telegram_bot_token)
 
     return NotificationRead(
         id=notification.id,

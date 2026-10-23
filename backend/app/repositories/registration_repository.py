@@ -107,7 +107,12 @@ class RegistrationRepository(BaseRepository[Registration]):
             stmt = stmt.where(Registration.id == filters.registration_id)
         if filters.name:
             like = f"%{filters.name}%"
-            stmt = stmt.where((User.first_name.ilike(like)) | (User.second_name.ilike(like)))
+            stmt = stmt.where(
+                (User.first_name.ilike(like))
+                | (User.second_name.ilike(like))
+                | (Registration.national_id.ilike(like))
+                | (User.phone.ilike(like))
+            )
         if filters.phone:
             stmt = stmt.where(User.phone.ilike(f"%{filters.phone}%"))
         if filters.status:
