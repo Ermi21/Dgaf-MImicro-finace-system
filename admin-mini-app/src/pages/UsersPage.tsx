@@ -48,9 +48,9 @@ export function UsersPage() {
       );
       setCustomerToDelete(null);
       state.reload();
-      setTimeout(() => setDeleteSuccess(null), 5000);
-    } catch (err) {
-      setDeleteError(err instanceof ApiRequestError ? err.message : t.common.somethingWrong);
+    } catch (err: any) {
+      const msg = err?.message || (typeof err === "string" ? err : t.common.somethingWrong);
+      setDeleteError(msg);
     } finally {
       setDeleting(false);
     }

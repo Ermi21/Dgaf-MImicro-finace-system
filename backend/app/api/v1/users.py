@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Query, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.deps import AuthContext, get_current_actor, require_permission
+from app.api.v1.deps import AuthContext, get_current_actor, require_permission, require_active_admin
 from app.core.exceptions import NotFoundError
 from app.database.session import get_db
 from app.models.user import User
@@ -89,14 +89,14 @@ async def update_my_language(
 )
 async def delete_user(
     user_id: UUID,
-    actor: AuthContext = Depends(require_permission(Permissions.USER_VIEW)),
+    actor: AuthContext = Depends(require_active_admin),
     session: AsyncSession = Depends(get_db),
 ) -> Response:
     """Permanently delete a customer/user from the system along with all their
     associated registrations and notifications."""
     user = await session.get(User, user_id)
     if not user:
-        raise NotFoundError("Customer not found")
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
 
     admin_id = UUID(actor.admin_id) if actor.admin_id else None
     try:
@@ -110,7 +110,6 @@ async def delete_user(
             new_value=None,
         )
     except Exception:
-        # Don't let audit log failures block record deletion
         pass
 
     # Clean up associated records explicitly before removing user
@@ -125,5 +124,6 @@ async def delete_user(
         delete(Registration).where(Registration.user_id == user_id)
     )
     await session.delete(user)
+    await session.flush()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
