@@ -59,17 +59,17 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           </div>
           <h1
             style={{
-              fontSize: "22px",
+              fontSize: "20px",
               fontWeight: 700,
               color: "#f8fafc",
               margin: "6px 0",
-              letterSpacing: "-0.02em",
+              letterSpacing: "-0.01em",
             }}
           >
-            Admin Portal
+            Digaf Management Portal
           </h1>
-          <p style={{ fontSize: "13px", color: "#94a3b8", margin: 0 }}>
-            Sign in with your administrator credentials to manage jobs, registrations, and reports.
+          <p style={{ fontSize: "12.5px", color: "#94a3b8", margin: 0, lineHeight: 1.4 }}>
+            Official Internal Operations System • Digaf Microfinance Institution
           </p>
         </div>
 
