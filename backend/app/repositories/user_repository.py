@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from sqlalchemy import func, select
+from sqlalchemy.orm import selectinload
 
+from app.models.registration import Registration
 from app.models.user import User
 from app.repositories.base import BaseRepository
 
@@ -11,7 +13,10 @@ class UserRepository(BaseRepository[User]):
 
     async def get_by_telegram_id(self, telegram_id: int) -> User | None:
         result = await self.session.execute(
-            select(User).where(User.telegram_id == telegram_id).order_by(User.created_at.desc())
+            select(User)
+            .options(selectinload(User.registrations))
+            .where(User.telegram_id == telegram_id)
+            .order_by(User.created_at.desc())
         )
         return result.scalars().first()
 
@@ -50,17 +55,21 @@ class UserRepository(BaseRepository[User]):
         )
         return await self.add(user)
 
-
     async def search(
         self, *, query: str | None, page: int, page_size: int
     ) -> tuple[list[User], int]:
-        stmt = select(User)
+        stmt = select(User).options(selectinload(User.registrations))
         if query:
-            like = f"%{query}%"
-            stmt = stmt.where(
-                (User.first_name.ilike(like))
-                | (User.second_name.ilike(like))
-                | (User.phone.ilike(like))
+            like = f"%{query.strip()}%"
+            stmt = (
+                stmt.outerjoin(User.registrations)
+                .where(
+                    (User.first_name.ilike(like))
+                    | (User.second_name.ilike(like))
+                    | (User.phone.ilike(like))
+                    | (Registration.national_id.ilike(like))
+                )
+                .distinct()
             )
         count_stmt = select(func.count()).select_from(stmt.subquery())
         total = (await self.session.execute(count_stmt)).scalar_one()

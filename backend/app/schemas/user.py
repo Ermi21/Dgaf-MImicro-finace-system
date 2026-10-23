@@ -10,3 +10,5 @@ class UserRead(TimestampedRead):
     phone: str
     language: str
     is_active: bool
+    national_id: str | None = None
+    registrations_count: int = 0

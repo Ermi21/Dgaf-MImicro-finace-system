@@ -17,6 +17,7 @@ from app.database.base import utcnow
 from app.models.admin import Admin
 from app.models.enums import ALLOWED_REGISTRATION_TRANSITIONS, ReferralType, RegistrationStatus
 from app.models.registration import Registration
+from app.models.user import User
 from app.repositories.admin_repository import AdminRepository
 from app.repositories.registration_repository import RegistrationRepository
 from app.repositories.user_repository import UserRepository
@@ -330,6 +331,8 @@ class RegistrationService:
                 "Only REJECTED or CANCELLED registrations can be deleted."
             )
 
+        user_id = registration.user_id
+
         await self.activity_log.record(
             admin_id=admin_id,
             action="registration.deleted",
@@ -339,3 +342,13 @@ class RegistrationService:
             new_value=None,
         )
         await self.session.delete(registration)
+        await self.session.flush()
+
+        # If this customer has no other remaining registrations, eliminate the customer row as well
+        remaining_count = await self.session.scalar(
+            select(func.count()).select_from(Registration).where(Registration.user_id == user_id)
+        )
+        if (remaining_count or 0) == 0:
+            user = await self.session.get(User, user_id)
+            if user:
+                await self.session.delete(user)

@@ -85,6 +85,11 @@ export function clearApiCache(prefix?: string): void {
 function invalidateCacheOnMutation(path: string): void {
   if (path.includes("/registrations")) {
     clearApiCache("/registrations");
+    clearApiCache("/users");
+    clearApiCache("/reports");
+  } else if (path.includes("/users")) {
+    clearApiCache("/users");
+    clearApiCache("/registrations");
     clearApiCache("/reports");
   } else if (path.includes("/jobs")) {
     clearApiCache("/jobs");
