@@ -361,7 +361,7 @@ function RegistrationDetailView({ id, onBack }: { id: string; onBack: () => void
             <Row label={t.registrations.columnName} value={`${state.data.user.first_name} ${state.data.user.second_name}`} />
             <Row
               label={t.registrations.columnNationalId}
-              value={state.data.national_id || state.data.user.national_id || "—"}
+              value={state.data.national_id || "—"}
             />
             <Row label={t.registrations.columnPhone} value={state.data.user.phone} />
             <Row

@@ -56,6 +56,7 @@ export interface UserRead {
   second_name: string;
   phone: string;
   language: string;
+  national_id?: string | null;
   is_active: boolean;
   created_at: string;
 }
