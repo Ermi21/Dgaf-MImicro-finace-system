@@ -115,7 +115,7 @@ export function ReportsPage() {
         if (j) filterLabels.push(`Job: ${j.name}`);
       }
 
-      exportRegistrationsReportToExcel(
+      await exportRegistrationsReportToExcel(
         fullData.items,
         trendsState.status === "success" ? trendsState.data : null,
         filterLabels.length > 0 ? filterLabels.join(", ") : "All Registrations"
@@ -123,7 +123,7 @@ export function ReportsPage() {
     } catch (err) {
       console.error("Export error:", err);
       if (registrationsState.status === "success") {
-        exportRegistrationsReportToExcel(
+        await exportRegistrationsReportToExcel(
           registrationsState.data.items,
           trendsState.status === "success" ? trendsState.data : null,
           "Current View"

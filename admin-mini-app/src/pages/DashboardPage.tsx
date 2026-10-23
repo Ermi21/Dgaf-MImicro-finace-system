@@ -85,14 +85,27 @@ export function DashboardPage() {
     if (isManual) setRefreshing(true);
     try {
       const dateParams = buildDateParams(targetRange);
-      const [dashRes, refRes] = await Promise.all([
-        api.get<DashboardStats>(`/api/v1/reports/dashboard?payout_rate=${payoutRate}${dateParams}`, {
-          bypassCache: isManual,
-        }),
-        api.get<ReferralReport>(`/api/v1/reports/referrals?payout_rate=${payoutRate}${dateParams}`, {
-          bypassCache: isManual,
-        }),
-      ]);
+      const dashPromise = api.get<DashboardStats>(
+        `/api/v1/reports/dashboard?payout_rate=${payoutRate}${dateParams}`,
+        { bypassCache: isManual },
+      );
+      const refPromise = api.get<ReferralReport>(
+        `/api/v1/reports/referrals?payout_rate=${payoutRate}${dateParams}`,
+        { bypassCache: isManual },
+      );
+
+      // Fast display: update KPI cards as soon as dashboard stats resolve
+      dashPromise
+        .then((dashRes) => {
+          if (activeRangeRef.current === targetRange) {
+            setStats(dashRes);
+            setLoading(false);
+            setError(null);
+          }
+        })
+        .catch(() => {});
+
+      const [dashRes, refRes] = await Promise.all([dashPromise, refPromise]);
 
       const cacheKey = `${targetRange}_${payoutRate}`;
       periodCache.set(cacheKey, {
@@ -116,29 +129,6 @@ export function DashboardPage() {
     }
   }
 
-  function prefetchOtherRanges(current: DateRange) {
-    const allRanges: DateRange[] = ["ALL", "TODAY", "7DAYS", "30DAYS", "90DAYS", "MONTH"];
-    for (const r of allRanges) {
-      if (r === current) continue;
-      const cacheKey = `${r}_${payoutRate}`;
-      if (!periodCache.has(cacheKey)) {
-        const dateParams = buildDateParams(r);
-        Promise.all([
-          api.get<DashboardStats>(`/api/v1/reports/dashboard?payout_rate=${payoutRate}${dateParams}`),
-          api.get<ReferralReport>(`/api/v1/reports/referrals?payout_rate=${payoutRate}${dateParams}`),
-        ])
-          .then(([dashRes, refRes]) => {
-            periodCache.set(cacheKey, {
-              stats: dashRes,
-              referralData: refRes,
-              timestamp: Date.now(),
-            });
-          })
-          .catch(() => {});
-      }
-    }
-  }
-
   function handleDateRangeSelect(range: DateRange) {
     if (range === dateRange) {
       setDropdownOpen(false);
@@ -155,10 +145,9 @@ export function DashboardPage() {
     if (cached) {
       setStats(cached.stats);
       setReferralData(cached.referralData);
-      // Quiet background revalidation without blocking UI or showing wait state
+      // Quiet background revalidation without blocking UI
       fetchDataForRange(range, false);
     } else {
-      // Fast load for new range
       fetchDataForRange(range, false);
     }
   }
@@ -166,9 +155,7 @@ export function DashboardPage() {
   function handleManualRefresh() {
     periodCache.clear();
     clearApiCache("/reports");
-    fetchDataForRange(dateRange, true).then(() => {
-      prefetchOtherRanges(dateRange);
-    });
+    fetchDataForRange(dateRange, true);
   }
 
   useEffect(() => {
@@ -179,13 +166,9 @@ export function DashboardPage() {
       setStats(cached.stats);
       setReferralData(cached.referralData);
       setLoading(false);
-      fetchDataForRange(dateRange, false).then(() => {
-        prefetchOtherRanges(dateRange);
-      });
+      fetchDataForRange(dateRange, false);
     } else {
-      fetchDataForRange(dateRange, false).then(() => {
-        prefetchOtherRanges(dateRange);
-      });
+      fetchDataForRange(dateRange, false);
     }
 
     // Background sync every 25s when tab is active
@@ -209,11 +192,11 @@ export function DashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [payoutRate]);
 
-  function handleExportExcel() {
+  async function handleExportExcel() {
     if (!stats) return;
     setExporting(true);
     try {
-      exportDashboardToExcel(stats, referralData, timeRangeLabel);
+      await exportDashboardToExcel(stats, referralData, timeRangeLabel);
     } finally {
       setTimeout(() => setExporting(false), 500);
     }

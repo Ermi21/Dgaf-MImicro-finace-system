@@ -1,4 +1,3 @@
-import * as XLSX from "xlsx";
 import type { DashboardStats, ReferralReport, RegistrationListItem, RegistrationTrends } from "../types";
 
 /**
@@ -8,12 +7,13 @@ import type { DashboardStats, ReferralReport, RegistrationListItem, Registration
  *  2. Referral Leaderboard & Company Payouts
  *  3. Detailed List of Referred Applicants
  */
-export function exportDashboardToExcel(
+export async function exportDashboardToExcel(
   stats: DashboardStats,
   referralData: ReferralReport | null,
   timeRangeLabel: string = "All Time"
 ) {
   try {
+    const XLSX = await import("xlsx");
     const timestamp = new Date().toISOString().slice(0, 10);
     const fileName = `JobPlatform_Analytics_${timestamp}.xlsx`;
 
@@ -164,12 +164,13 @@ export function exportDashboardToExcel(
  *  1. Detailed Registrations Table (Name, Phone, National ID, Gender, Job, City, Subcity, Status, Date)
  *  2. Analytics Summary (Trends by Job and City)
  */
-export function exportRegistrationsReportToExcel(
+export async function exportRegistrationsReportToExcel(
   items: RegistrationListItem[],
   trends?: RegistrationTrends | null,
   filterSummary?: string
 ) {
   try {
+    const XLSX = await import("xlsx");
     const timestamp = new Date().toISOString().slice(0, 10);
     const fileName = `Digaf_Registrations_Report_${timestamp}.xlsx`;
     const wb = XLSX.utils.book_new();

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { useAuth } from "./hooks/useAuth";
 import { I18nContext, getDictionary, type Language } from "./i18n";
 import { getTelegramUser } from "./services/telegram";
@@ -6,16 +6,18 @@ import { hasPermission } from "./services/api";
 import { LoadingSpinner, ErrorBanner, AccessDenied } from "./components/Feedback";
 import { Permissions } from "./permissions";
 import { DashboardPage } from "./pages/DashboardPage";
-import { RegistrationsPage } from "./pages/RegistrationsPage";
-import { UsersPage } from "./pages/UsersPage";
-import { JobsPage } from "./pages/JobsPage";
-import { LocationsPage } from "./pages/LocationsPage";
-import { NotificationsPage } from "./pages/NotificationsPage";
-import { ReportsPage } from "./pages/ReportsPage";
-import { ActivityLogsPage } from "./pages/ActivityLogsPage";
-import { AdminManagementPage } from "./pages/AdminManagementPage";
-import { LoginPage } from "./pages/LoginPage";
 import { DigafLogo } from "./components/DigafLogo";
+
+// Lazy-loaded pages to make initial app load instantaneous
+const RegistrationsPage = lazy(() => import("./pages/RegistrationsPage").then((m) => ({ default: m.RegistrationsPage })));
+const UsersPage = lazy(() => import("./pages/UsersPage").then((m) => ({ default: m.UsersPage })));
+const JobsPage = lazy(() => import("./pages/JobsPage").then((m) => ({ default: m.JobsPage })));
+const LocationsPage = lazy(() => import("./pages/LocationsPage").then((m) => ({ default: m.LocationsPage })));
+const NotificationsPage = lazy(() => import("./pages/NotificationsPage").then((m) => ({ default: m.NotificationsPage })));
+const ReportsPage = lazy(() => import("./pages/ReportsPage").then((m) => ({ default: m.ReportsPage })));
+const ActivityLogsPage = lazy(() => import("./pages/ActivityLogsPage").then((m) => ({ default: m.ActivityLogsPage })));
+const AdminManagementPage = lazy(() => import("./pages/AdminManagementPage").then((m) => ({ default: m.AdminManagementPage })));
+const LoginPage = lazy(() => import("./pages/LoginPage").then((m) => ({ default: m.LoginPage })));
 
 import {
   DashboardIcon,
@@ -121,14 +123,22 @@ export default function App() {
 
   if (auth.status === "loading") {
     return (
-      <div className="screen">
+      <div className="screen" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "65vh", gap: 14 }}>
+        <DigafLogo size={36} adminBadge={true} />
         <LoadingSpinner />
+        <span style={{ fontSize: 13, color: "var(--tg-hint, #888)", fontWeight: 500 }}>
+          Opening Admin Portal...
+        </span>
       </div>
     );
   }
 
   if (auth.status === "unauthenticated") {
-    return <LoginPage onLogin={loginWeb} />;
+    return (
+      <Suspense fallback={<div className="screen" style={{ display: "flex", justifyContent: "center", padding: "60px 0" }}><LoadingSpinner /></div>}>
+        <LoginPage onLogin={loginWeb} />
+      </Suspense>
+    );
   }
 
   if (auth.status === "not-admin") {
@@ -249,7 +259,7 @@ export default function App() {
               <AccessDenied />
             </div>
           ) : (
-            <>
+            <Suspense fallback={<div className="screen" style={{ display: "flex", justifyContent: "center", padding: "40px 0" }}><LoadingSpinner /></div>}>
               {visited.has("dashboard") && (
                 <div style={{ display: view === "dashboard" ? "block" : "none" }}>
                   <DashboardPage />
@@ -295,7 +305,7 @@ export default function App() {
                   <AdminManagementPage />
                 </div>
               )}
-            </>
+            </Suspense>
           )}
 
           {/* Digaf Footer with Logo and Rights Description */}
