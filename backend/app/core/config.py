@@ -41,7 +41,7 @@ class Settings(BaseSettings):
         description="Customer Mini App URL",
     )
     admin_mini_app_url: str = Field(
-        default="https://job-platform-admin-six.vercel.app",
+        default="https://digaf-admin-portal.vercel.app",
         description="Admin Mini App URL",
     )
 
