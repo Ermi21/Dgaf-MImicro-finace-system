@@ -121,7 +121,7 @@ export function UsersPage() {
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "1.7fr 1.3fr 1.4fr 1.2fr 1.0fr 0.9fr 1.0fr",
+                    gridTemplateColumns: "1.9fr 1.4fr 1.5fr 1.3fr 1.0fr 1.0fr",
                     gap: "0 8px",
                     padding: "12px 16px",
                     background: "var(--color-surface-raised, #18221b)",
@@ -138,7 +138,6 @@ export function UsersPage() {
                   <span>{t.users.columnPhone}</span>
                   <span>{t.users.columnNationalId}</span>
                   <span>{t.users.columnJoined}</span>
-                  <span>{t.users.columnApplications}</span>
                   <span>{t.users.columnStatus}</span>
                   <span style={{ textAlign: "right" }}>{t.users.columnActions}</span>
                 </div>
@@ -150,7 +149,7 @@ export function UsersPage() {
                     className="list-item"
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "1.7fr 1.3fr 1.4fr 1.2fr 1.0fr 0.9fr 1.0fr",
+                      gridTemplateColumns: "1.9fr 1.4fr 1.5fr 1.3fr 1.0fr 1.0fr",
                       gap: "0 8px",
                       padding: "12px 16px",
                       alignItems: "center",
@@ -226,23 +225,7 @@ export function UsersPage() {
                       })}
                     </span>
 
-                    {/* 5. Total Applications */}
-                    <div>
-                      <span
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 600,
-                          padding: "2px 8px",
-                          borderRadius: 10,
-                          background: (u.registrations_count ?? 0) > 0 ? "rgba(16, 185, 129, 0.12)" : "rgba(255, 255, 255, 0.05)",
-                          color: (u.registrations_count ?? 0) > 0 ? "#34d399" : "var(--tg-hint, #888)",
-                        }}
-                      >
-                        {u.registrations_count ?? 0} {(u.registrations_count === 1) ? "Job" : "Jobs"}
-                      </span>
-                    </div>
-
-                    {/* 6. Status */}
+                    {/* 5. Status */}
                     <div>
                       <span className={`badge ${u.is_active ? "badge-approved" : "badge-cancelled"}`}>
                         {u.is_active ? t.common.active : t.common.inactive}

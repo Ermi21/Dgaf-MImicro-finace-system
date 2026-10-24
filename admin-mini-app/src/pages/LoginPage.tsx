@@ -193,6 +193,27 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 {showPassword ? "👁️" : "🙈"}
               </button>
             </div>
+            <div style={{ marginTop: 6, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: 11.5, color: "#94a3b8" }}>
+                Default password: <code style={{ color: "#34d399", background: "rgba(16,185,129,0.12)", padding: "1px 6px", borderRadius: 4, fontWeight: 600 }}>admin123456</code>
+              </span>
+              <button
+                type="button"
+                onClick={() => { setUsername("admin"); setPassword("admin123456"); }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#34d399",
+                  fontSize: 11.5,
+                  cursor: "pointer",
+                  textDecoration: "underline",
+                  padding: 0,
+                  fontWeight: 600,
+                }}
+              >
+                Auto-fill
+              </button>
+            </div>
           </div>
 
           <button

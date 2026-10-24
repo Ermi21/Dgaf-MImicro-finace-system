@@ -49,6 +49,50 @@ export function LocationsPage() {
   const [showAddSubcity, setShowAddSubcity] = useState(false);
   const [showAddWoreda, setShowAddWoreda] = useState(false);
   const [autoFilling, setAutoFilling] = useState(false);
+  const [seedingCities, setSeedingCities] = useState(false);
+
+  const CORE_5_CITIES = ["Addis Ababa", "Bahir Dar", "Hawassa", "Adama", "Dire Dawa"];
+
+  async function seedCity(name: string) {
+    setError(null);
+    setSuccessMsg(null);
+    setSeedingCities(true);
+    try {
+      const created = await api.post<City>("/api/v1/cities", {
+        name,
+        auto_populate: true,
+      });
+      citiesState.reload();
+      setSelectedCity(created.id);
+      setSelectedSubcity("");
+      setSuccessMsg(`✓ Initialized ${name} with official subcities & woredas!`);
+    } catch (err) {
+      setError(err instanceof ApiRequestError ? err.message : t.common.somethingWrong);
+    } finally {
+      setSeedingCities(false);
+    }
+  }
+
+  async function seedAllMissingCoreCities(missing: string[]) {
+    if (missing.length === 0) return;
+    setError(null);
+    setSuccessMsg(null);
+    setSeedingCities(true);
+    try {
+      for (const name of missing) {
+        await api.post<City>("/api/v1/cities", {
+          name,
+          auto_populate: true,
+        });
+      }
+      citiesState.reload();
+      setSuccessMsg(`✓ Initialized ${missing.length} core Ethiopian cities with official subcities & woredas!`);
+    } catch (err) {
+      setError(err instanceof ApiRequestError ? err.message : t.common.somethingWrong);
+    } finally {
+      setSeedingCities(false);
+    }
+  }
 
   async function addCity() {
     setError(null);
@@ -168,13 +212,37 @@ export function LocationsPage() {
     }
   }
 
-  // Filtered lists for fast lookup
+  // Filtered lists for fast lookup - clean official top 10 cities with Addis Ababa FIRST
   const filteredCities = useMemo(() => {
     if (citiesState.status !== "success") return [];
-    if (!citySearch.trim()) return citiesState.data;
-    const q = citySearch.toLowerCase();
-    return citiesState.data.filter((c) => c.name.toLowerCase().includes(q));
+    // Cut out sample/dummy test entries
+    const DUMMY_CITIES = ["badar", "bahir dare", "bole", "yeka", "adiss ababa", "jima"];
+    let list = citiesState.data.filter(
+      (c) => !DUMMY_CITIES.includes(c.name.trim().toLowerCase())
+    );
+    if (citySearch.trim()) {
+      const q = citySearch.toLowerCase();
+      list = list.filter((c) => c.name.toLowerCase().includes(q));
+    }
+    // Make Addis Ababa is first instead of Adama
+    list = [...list].sort((a, b) => {
+      const aIsAddis = a.name.toLowerCase().includes("addis");
+      const bIsAddis = b.name.toLowerCase().includes("addis");
+      if (aIsAddis && !bIsAddis) return -1;
+      if (!aIsAddis && bIsAddis) return 1;
+      return a.name.localeCompare(b.name);
+    });
+    // 10 cities is enough
+    return list.slice(0, 10);
   }, [citiesState, citySearch]);
+
+  // Auto-select Addis Ababa first so subcities and woredas display immediately
+  useEffect(() => {
+    if (!selectedCity && filteredCities.length > 0) {
+      const addis = filteredCities.find((c) => c.name.toLowerCase().includes("addis")) || filteredCities[0];
+      if (addis) setSelectedCity(addis.id);
+    }
+  }, [filteredCities, selectedCity]);
 
   const filteredSubcities = useMemo(() => {
     if (subcitiesState.status !== "success") return [];
@@ -233,71 +301,131 @@ export function LocationsPage() {
       )}
 
       {/* Quick Select Major Cities Ribbon */}
-      {citiesState.status === "success" && (
-        <div
-          className="card"
-          style={{
-            padding: "12px 16px",
-            marginBottom: 16,
-            background: "linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(30, 41, 59, 0.4) 100%)",
-            border: "1px solid rgba(16, 185, 129, 0.2)",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: "#34d399", textTransform: "uppercase", letterSpacing: 0.8 }}>
-              ⚡ Quick Select Major Hubs
-            </span>
-            <span style={{ fontSize: 11, color: "var(--tg-hint, #888)" }}>Click to load hierarchy</span>
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {["Addis Ababa", "Bahir Dar", "Hawassa", "Adama", "Dire Dawa"].map((name) => {
-              const matched = citiesState.data.find((c) => c.name.toLowerCase() === name.toLowerCase());
-              if (!matched) return null;
-              const isSelected = selectedCity === matched.id;
-              return (
+      {citiesState.status === "success" && (() => {
+        const missingCore = CORE_5_CITIES.filter(
+          (name) => !citiesState.data.some((c) => c.name.toLowerCase() === name.toLowerCase())
+        );
+
+        return (
+          <div
+            className="card"
+            style={{
+              padding: "14px 16px",
+              marginBottom: 16,
+              background: "linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(30, 41, 59, 0.4) 100%)",
+              border: "1px solid rgba(16, 185, 129, 0.25)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBottom: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#34d399", textTransform: "uppercase", letterSpacing: 0.8 }}>
+                  ⚡ Core Ethiopian Hubs (Addis Ababa, Bahir Dar, Hawassa, Adama, Dire Dawa)
+                </span>
+                <span style={{ fontSize: 11, color: "var(--tg-hint, #888)" }}>Official hierarchy</span>
+              </div>
+
+              {missingCore.length > 0 && (
                 <button
-                  key={matched.id}
-                  onClick={() => {
-                    setSelectedCity(matched.id);
-                    setSelectedSubcity("");
-                    setSubcitySearch("");
-                    setWoredaSearch("");
-                  }}
                   type="button"
+                  onClick={() => seedAllMissingCoreCities(missingCore)}
+                  disabled={seedingCities}
                   style={{
+                    background: "linear-gradient(135deg, rgba(16, 185, 129, 0.3) 0%, rgba(5, 150, 105, 0.4) 100%)",
+                    border: "1px solid #10b981",
+                    color: "#34d399",
+                    borderRadius: 6,
+                    padding: "4px 10px",
+                    fontSize: 11.5,
+                    fontWeight: 700,
+                    cursor: seedingCities ? "not-allowed" : "pointer",
                     display: "inline-flex",
                     alignItems: "center",
-                    gap: 6,
-                    padding: "6px 14px",
-                    borderRadius: 8,
-                    fontSize: 13,
-                    fontWeight: isSelected ? 700 : 500,
-                    cursor: "pointer",
-                    transition: "all 0.15s ease",
-                    border: isSelected ? "1.5px solid #10b981" : "1px solid rgba(255, 255, 255, 0.12)",
-                    background: isSelected
-                      ? "rgba(16, 185, 129, 0.25)"
-                      : "rgba(255, 255, 255, 0.04)",
-                    color: isSelected ? "#34d399" : "var(--tg-text, #e2e8f0)",
-                    boxShadow: isSelected ? "0 0 12px rgba(16, 185, 129, 0.3)" : "none",
+                    gap: 5,
                   }}
                 >
-                  <span>📍 {matched.name}</span>
-                  {isSelected && <span style={{ fontSize: 11 }}>✓</span>}
-                  <span
-                    style={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: "50%",
-                      background: matched.is_active ? "#10b981" : "#64748b",
-                    }}
-                  />
+                  ⚡ {seedingCities ? "Initializing..." : `Initialize ${missingCore.length} Missing Core Hubs`}
                 </button>
-              );
-            })}
+              )}
+            </div>
+
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {CORE_5_CITIES.map((name) => {
+                const matched = citiesState.data.find((c) => c.name.toLowerCase() === name.toLowerCase());
+                if (!matched) {
+                  return (
+                    <button
+                      key={name}
+                      onClick={() => seedCity(name)}
+                      disabled={seedingCities}
+                      type="button"
+                      title={`Click to initialize ${name} with official subcities & woredas`}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        padding: "6px 14px",
+                        borderRadius: 8,
+                        fontSize: 12.5,
+                        fontWeight: 600,
+                        cursor: seedingCities ? "not-allowed" : "pointer",
+                        border: "1.5px dashed rgba(16, 185, 129, 0.45)",
+                        background: "rgba(16, 185, 129, 0.05)",
+                        color: "#6ee7b7",
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      <span>+ Seed {name}</span>
+                      <span style={{ fontSize: 10, opacity: 0.7 }}>Auto-fill</span>
+                    </button>
+                  );
+                }
+
+                const isSelected = selectedCity === matched.id;
+                return (
+                  <button
+                    key={matched.id}
+                    onClick={() => {
+                      setSelectedCity(matched.id);
+                      setSelectedSubcity("");
+                      setSubcitySearch("");
+                      setWoredaSearch("");
+                    }}
+                    type="button"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      padding: "6px 14px",
+                      borderRadius: 8,
+                      fontSize: 13,
+                      fontWeight: isSelected ? 700 : 500,
+                      cursor: "pointer",
+                      transition: "all 0.15s ease",
+                      border: isSelected ? "1.5px solid #10b981" : "1px solid rgba(255, 255, 255, 0.12)",
+                      background: isSelected
+                        ? "rgba(16, 185, 129, 0.25)"
+                        : "rgba(255, 255, 255, 0.04)",
+                      color: isSelected ? "#34d399" : "var(--tg-text, #e2e8f0)",
+                      boxShadow: isSelected ? "0 0 12px rgba(16, 185, 129, 0.3)" : "none",
+                    }}
+                  >
+                    <span>📍 {matched.name}</span>
+                    {isSelected && <span style={{ fontSize: 11 }}>✓</span>}
+                    <span
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: "50%",
+                        background: matched.is_active ? "#10b981" : "#64748b",
+                      }}
+                    />
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* 1. CITIES SECTION (Column & Row Grid arrangement) */}
       <div className="card" style={{ marginBottom: 16 }}>

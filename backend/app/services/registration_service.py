@@ -116,6 +116,8 @@ class RegistrationService:
             employment_type=payload.employment_type,
             gender=gender_val,
             national_id=payload.national_id,
+            document_name=payload.document_name,
+            document_data=payload.document_data,
             referral_type=payload.referral_type,
             referral_name=payload.referral_name,
             referral_admin_id=referral_admin_id,

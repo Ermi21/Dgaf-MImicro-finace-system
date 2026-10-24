@@ -58,6 +58,8 @@ export interface RegistrationCreatePayload {
   referral_type?: ReferralType;
   referral_name?: string;
   referral_admin_id?: string;
+  document_name?: string;
+  document_data?: string;
 }
 
 export interface MyRegistrationItem {

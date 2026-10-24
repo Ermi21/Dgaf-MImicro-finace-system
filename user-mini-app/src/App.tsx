@@ -32,9 +32,13 @@ export default function App() {
   const [view, setView] = useState<View>(viewFromUrl());
   const [visited, setVisited] = useState<Set<View>>(() => new Set([viewFromUrl()]));
   const [lang, setLang] = useState<Language>(initialLanguage());
+  const [registerKey, setRegisterKey] = useState(0);
   const i18nValue = { lang, setLang, t: getDictionary(lang) };
 
   function handleNavigate(nextView: View) {
+    if (nextView === "register") {
+      setRegisterKey((k) => k + 1);
+    }
     setVisited((prev) => new Set(prev).add(nextView));
     setView(nextView);
   }
@@ -43,7 +47,7 @@ export default function App() {
     if (view === "home") {
       hideMainButton();
       // Always return a cleanup function so React never tries to call void.
-      return () => {};
+      return () => { };
     }
     // setBackButton returns its own cleanup (offClick + hide).
     return setBackButton(() => handleNavigate("home"));
@@ -84,7 +88,7 @@ export default function App() {
       )}
       {visited.has("register") && (
         <div style={{ display: view === "register" ? "block" : "none" }}>
-          <RegisterPage onNavigate={handleNavigate} isActive={view === "register"} />
+          <RegisterPage key={registerKey} onNavigate={handleNavigate} isActive={view === "register"} />
         </div>
       )}
       {visited.has("profile") && (
@@ -128,7 +132,7 @@ function DevBanner() {
         zIndex: 9999,
       }}
     >
-      ⚠️ DEV PREVIEW — No Telegram session. API calls will return errors. Open from the bot for full functionality.
+
     </div>
   );
 }

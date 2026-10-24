@@ -20,6 +20,7 @@ import { Button } from "../components/Button";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { IfPermitted } from "../components/IfPermitted";
 import { Permissions } from "../permissions";
+import { exportRegistrationsReportToExcel } from "../utils/excelExport";
 
 const PAGE_SIZE = 20;
 
@@ -33,6 +34,7 @@ export function RegistrationsPage() {
   const [cityId, setCityId] = useState("");
   const [page, setPage] = useState(1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   const jobsState = useApi<Job[]>(() => api.get<Job[]>("/api/v1/jobs?include_inactive=true"), []);
   const citiesState = useApi<City[]>(() => api.get<City[]>("/api/v1/cities"), []);
@@ -57,6 +59,32 @@ export function RegistrationsPage() {
     setPage(1);
   }
 
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const exportQs = toQuery({
+        name: name || undefined,
+        status: status || undefined,
+        gender: gender || undefined,
+        referral_type: referralType || undefined,
+        job_id: jobId || undefined,
+        city_id: cityId || undefined,
+        page: 1,
+        page_size: 1000,
+      });
+      const fullData = await api.get<Page<RegistrationListItem>>(`/api/v1/registrations${exportQs}`);
+      await exportRegistrationsReportToExcel(
+        fullData.items,
+        null,
+        `Registrations Export`
+      );
+    } catch (err) {
+      console.error("Export error:", err);
+    } finally {
+      setExporting(false);
+    }
+  }
+
   if (selectedId) {
     return (
       <RegistrationDetailView
@@ -71,83 +99,243 @@ export function RegistrationsPage() {
 
   return (
     <div className="screen">
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-        <h1 className="page-title" style={{ margin: 0 }}>{t.registrations.title}</h1>
-        <button
-          className="btn btn-secondary"
-          style={{ fontSize: 13, padding: "6px 14px" }}
-          onClick={() => {
-            clearApiCache("/api/v1/registrations");
-            listState.reload();
-          }}
-          title="Refresh list"
-        >
-          ↻ Refresh
-        </button>
+      {/* Header Row: Title + Total Registrations + Export to Excel + compact Refresh */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, gap: 8, flexWrap: "wrap" }}>
+        <div>
+          <h1 className="page-title" style={{ margin: 0 }}>{t.registrations.title}</h1>
+          {listState.status === "success" && (
+            <div style={{ fontSize: 13, color: "var(--tg-hint, #94a3b8)", marginTop: 2, fontWeight: 500 }}>
+              Total Registrations: <strong style={{ color: "var(--tg-text, #fff)" }}>{listState.data.total}</strong>
+            </div>
+          )}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {/* Export to Excel button */}
+          <button
+            type="button"
+            onClick={handleExport}
+            disabled={exporting || listState.status !== "success"}
+            title="Export matching records to Excel"
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              height: 34, padding: "0 14px",
+              fontSize: 13, fontWeight: 700, borderRadius: 8,
+              border: "1px solid rgba(16, 185, 129, 0.45)",
+              background: "linear-gradient(135deg, rgba(16, 185, 129, 0.22) 0%, rgba(5, 150, 105, 0.32) 100%)",
+              color: exporting ? "#888" : "#34d399",
+              cursor: exporting ? "not-allowed" : "pointer",
+              boxShadow: "0 2px 6px rgba(16, 185, 129, 0.15)",
+              transition: "all 0.15s ease",
+            }}
+          >
+            📊 {exporting ? "Exporting..." : "Export to Excel"}
+          </button>
+
+          {/* Compact icon-only Refresh */}
+          <button
+            type="button"
+            onClick={() => { clearApiCache("/api/v1/registrations"); clearApiCache("/reports"); listState.reload(); }}
+            title="Refresh list"
+            style={{
+              width: 34, height: 34,
+              display: "inline-flex", alignItems: "center", justifyContent: "center",
+              borderRadius: 8,
+              border: "1px solid rgba(255,255,255,0.15)",
+              background: "rgba(255,255,255,0.06)",
+              color: "var(--tg-hint, #94a3b8)",
+              fontSize: 16,
+              cursor: "pointer",
+            }}
+          >
+            ↻
+          </button>
+        </div>
       </div>
 
-      <div className="card filter-bar">
-        <TextField
-          label={t.registrations.searchPlaceholder}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && resetAndSearch()}
-        />
-        <SelectField
-          label={t.registrations.filterStatus}
-          value={status}
-          placeholder={t.registrations.allStatuses}
-          options={[
-            { value: "PENDING", label: t.registrations.statusPending },
-            { value: "APPROVED", label: t.registrations.statusApproved },
-            { value: "REJECTED", label: t.registrations.statusRejected },
-            { value: "SUSPENDED", label: t.registrations.statusSuspended },
-            { value: "CANCELLED", label: t.registrations.statusCancelled },
-          ]}
-          onChange={(v) => setStatus(v as RegistrationStatus | "")}
-        />
-        <SelectField
-          label={t.registrations.filterGender}
-          value={gender}
-          placeholder={t.registrations.allGenders}
-          options={[
-            { value: "MALE", label: t.registrations.genderMale },
-            { value: "FEMALE", label: t.registrations.genderFemale },
-          ]}
-          onChange={(v) => setGender(v as Gender | "")}
-        />
-        <SelectField
-          label={t.registrations.filterReferral}
-          value={referralType}
-          placeholder={t.registrations.allReferrals}
-          options={[
-            { value: "NONE", label: t.registrations.referralDirect },
-            { value: "ADMIN", label: t.registrations.referralAdmin },
-            { value: "PERSON", label: t.registrations.referralPerson },
-          ]}
-          onChange={(v) => setReferralType(v as ReferralType | "")}
-        />
-        {jobsState.status === "success" && (
-          <SelectField
-            label={t.registrations.filterJob}
-            value={jobId}
-            placeholder={t.registrations.allJobs}
-            options={jobsState.data
-              .filter((j) => ["Employee", "Self-employed"].includes(j.name))
-              .map((j) => ({ value: j.id, label: j.name }))}
-            onChange={setJobId}
-          />
-        )}
-        {citiesState.status === "success" && (
-          <SelectField
-            label={t.registrations.filterCity}
-            value={cityId}
-            placeholder={t.registrations.allCities}
-            options={citiesState.data.map((c) => ({ value: c.id, label: c.name }))}
-            onChange={setCityId}
-          />
-        )}
-        <Button onClick={resetAndSearch}>{t.common.search}</Button>
+      {/* Structured Row & Column Filter Grid */}
+      <div
+        className="card"
+        style={{
+          padding: "14px 16px",
+          marginBottom: 12,
+          display: "flex",
+          flexDirection: "column",
+          gap: 12,
+          background: "var(--color-surface, #1e293b)",
+          border: "1px solid var(--color-border, rgba(255, 255, 255, 0.08))",
+        }}
+      >
+        {/* Quick Status Stats / Pills Row */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: "var(--tg-hint, #94a3b8)", textTransform: "uppercase", letterSpacing: 0.5, marginRight: 4 }}>
+              Status:
+            </span>
+            {[
+              { val: "", label: "All" },
+              { val: "PENDING", label: t.registrations.statusPending, color: "#f59e0b" },
+              { val: "APPROVED", label: t.registrations.statusApproved, color: "#10b981" },
+              { val: "REJECTED", label: t.registrations.statusRejected, color: "#ef4444" },
+              { val: "SUSPENDED", label: t.registrations.statusSuspended, color: "#8b5cf6" },
+              { val: "CANCELLED", label: t.registrations.statusCancelled, color: "#64748b" },
+            ].map((p) => {
+              const active = status === p.val;
+              return (
+                <button
+                  key={p.val}
+                  type="button"
+                  onClick={() => {
+                    setStatus(p.val as RegistrationStatus | "");
+                    setPage(1);
+                  }}
+                  style={{
+                    padding: "3px 10px",
+                    borderRadius: 14,
+                    fontSize: 11.5,
+                    fontWeight: active ? 700 : 500,
+                    cursor: "pointer",
+                    border: active
+                      ? `1.5px solid ${p.color || "var(--color-primary, #3b82f6)"}`
+                      : "1px solid rgba(255, 255, 255, 0.1)",
+                    background: active
+                      ? (p.color ? `${p.color}25` : "rgba(59, 130, 246, 0.2)")
+                      : "rgba(255, 255, 255, 0.04)",
+                    color: active ? (p.color || "#60a5fa") : "var(--tg-hint, #94a3b8)",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  {p.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {(name || status || gender || referralType || jobId || cityId) && (
+            <button
+              type="button"
+              onClick={() => {
+                setName("");
+                setStatus("");
+                setGender("");
+                setReferralType("");
+                setJobId("");
+                setCityId("");
+                setPage(1);
+              }}
+              style={{
+                background: "rgba(239, 68, 68, 0.1)",
+                color: "#f87171",
+                border: "1px solid rgba(239, 68, 68, 0.25)",
+                borderRadius: 6,
+                padding: "2px 8px",
+                fontSize: 11,
+                cursor: "pointer",
+                fontWeight: 600,
+              }}
+            >
+              ✕ Clear Filters
+            </button>
+          )}
+        </div>
+
+        {/* Row 1: Search Applicant + Status + Gender */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+            gap: 10,
+            alignItems: "flex-end",
+          }}
+        >
+          <div>
+            <TextField
+              label={t.registrations.searchPlaceholder}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && resetAndSearch()}
+            />
+          </div>
+          <div>
+            <SelectField
+              label={t.registrations.filterStatus}
+              value={status}
+              placeholder={t.registrations.allStatuses}
+              options={[
+                { value: "PENDING", label: t.registrations.statusPending },
+                { value: "APPROVED", label: t.registrations.statusApproved },
+                { value: "REJECTED", label: t.registrations.statusRejected },
+                { value: "SUSPENDED", label: t.registrations.statusSuspended },
+                { value: "CANCELLED", label: t.registrations.statusCancelled },
+              ]}
+              onChange={(v) => setStatus(v as RegistrationStatus | "")}
+            />
+          </div>
+          <div>
+            <SelectField
+              label={t.registrations.filterGender}
+              value={gender}
+              placeholder={t.registrations.allGenders}
+              options={[
+                { value: "MALE", label: t.registrations.genderMale },
+                { value: "FEMALE", label: t.registrations.genderFemale },
+              ]}
+              onChange={(v) => setGender(v as Gender | "")}
+            />
+          </div>
+        </div>
+
+        {/* Row 2: Referral + Job + City + Search Button */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr)) 120px",
+            gap: 10,
+            alignItems: "flex-end",
+          }}
+        >
+          <div>
+            <SelectField
+              label={t.registrations.filterReferral}
+              value={referralType}
+              placeholder={t.registrations.allReferrals}
+              options={[
+                { value: "NONE", label: t.registrations.referralDirect },
+                { value: "ADMIN", label: t.registrations.referralAdmin },
+                { value: "PERSON", label: t.registrations.referralPerson },
+              ]}
+              onChange={(v) => setReferralType(v as ReferralType | "")}
+            />
+          </div>
+          {jobsState.status === "success" && (
+            <div>
+              <SelectField
+                label={t.registrations.filterJob}
+                value={jobId}
+                placeholder={t.registrations.allJobs}
+                options={jobsState.data
+                  .filter((j) => ["Employee", "Self-employed"].includes(j.name))
+                  .map((j) => ({ value: j.id, label: j.name }))}
+                onChange={setJobId}
+              />
+            </div>
+          )}
+          {citiesState.status === "success" && (
+            <div>
+              <SelectField
+                label={t.registrations.filterCity}
+                value={cityId}
+                placeholder={t.registrations.allCities}
+                options={citiesState.data.map((c) => ({ value: c.id, label: c.name }))}
+                onChange={setCityId}
+              />
+            </div>
+          )}
+          <div style={{ paddingBottom: 2 }}>
+            <Button onClick={resetAndSearch} style={{ width: "100%", height: 38 }}>
+              🔍 {t.common.search}
+            </Button>
+          </div>
+        </div>
       </div>
 
       {listState.status === "loading" && <LoadingSpinner />}
@@ -165,7 +353,7 @@ export function RegistrationsPage() {
             {/* Header row */}
             <div style={{
               display: "grid",
-              gridTemplateColumns: "1.6fr 1.2fr 1.1fr 0.7fr 1fr 1.1fr 1fr 0.9fr",
+              gridTemplateColumns: "1.4fr 1.1fr 1fr 0.6fr 0.9fr 0.8fr 1fr 1fr 0.8fr",
               gap: "0 8px",
               padding: "10px 16px",
               background: "var(--color-surface-raised, #f5f5f5)",
@@ -181,6 +369,7 @@ export function RegistrationsPage() {
               <span>{t.registrations.columnPhone}</span>
               <span>{t.registrations.columnGender}</span>
               <span>{t.registrations.columnJob}</span>
+              <span>Doc</span>
               <span>{t.registrations.columnReferral}</span>
               <span>{t.registrations.columnLocation}</span>
               <span>{t.registrations.columnStatus}</span>
@@ -191,7 +380,7 @@ export function RegistrationsPage() {
                 reg.referral_type === "ADMIN"
                   ? `Admin: ${reg.referral_admin_name || reg.referral_name || "Admin"}`
                   : reg.referral_type === "PERSON"
-                    ? `${reg.referral_name || "Person"}`
+                    ? `${reg.referral_name || "Customer"}`
                     : "—";
 
               return (
@@ -200,7 +389,7 @@ export function RegistrationsPage() {
                   className="list-item list-item-clickable"
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "1.6fr 1.2fr 1.1fr 0.7fr 1fr 1.1fr 1fr 0.9fr",
+                    gridTemplateColumns: "1.4fr 1.1fr 1fr 0.6fr 0.9fr 0.8fr 1fr 1fr 0.8fr",
                     gap: "0 8px",
                     padding: "12px 16px",
                     alignItems: "center",
@@ -233,6 +422,17 @@ export function RegistrationsPage() {
                         : "—"}
                   </span>
                   <span className="list-item-meta">{reg.job_name}</span>
+                  <span className="list-item-meta">
+                    {reg.document_name ? (
+                      <span style={{ color: "#34d399", fontWeight: 700, fontSize: 11.5 }}>
+                        📄 Doc
+                      </span>
+                    ) : (
+                      <span style={{ color: "#f59e0b", fontSize: 11.5 }}>
+                        ⚠️ None
+                      </span>
+                    )}
+                  </span>
                   <span className="list-item-meta" style={{ color: reg.referral_type !== "NONE" ? "var(--color-primary)" : "inherit" }}>
                     {referralInfo}
                   </span>
@@ -267,6 +467,21 @@ function RegistrationDetailView({ id, onBack }: { id: string; onBack: () => void
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  const [showDocumentModal, setShowDocumentModal] = useState(false);
+
+  // If document was saved in browser localStorage (during dev/testing), fallback to it
+  const localDoc = useMemo(() => {
+    if (state.status !== "success") return null;
+    if (state.data.document_data) return null;
+    try {
+      const stored = localStorage.getItem(`reg_doc_${state.data.user.phone}`);
+      if (stored) return JSON.parse(stored);
+    } catch {}
+    return null;
+  }, [state]);
+
+  const activeDocData = state.status === "success" ? (state.data.document_data || localDoc?.fileData || null) : null;
+  const activeDocName = state.status === "success" ? (state.data.document_name || localDoc?.fileName || null) : null;
 
   async function sendDirectNotification() {
     if (!customNotifyMessage.trim()) return;
@@ -326,6 +541,9 @@ function RegistrationDetailView({ id, onBack }: { id: string; onBack: () => void
     setActionError(null);
     try {
       await api.delete(`/api/v1/registrations/${id}`);
+      clearApiCache("/registrations");
+      clearApiCache("/reports");
+      clearApiCache("/users");
       setShowDeleteDialog(false);
       onBack(); // go back to list and refresh
     } catch (err) {
@@ -403,6 +621,129 @@ function RegistrationDetailView({ id, onBack }: { id: string; onBack: () => void
             </div>
             {state.data.rejection_reason && (
               <Row label={t.registrations.rejectReasonLabel} value={state.data.rejection_reason} />
+            )}
+          </div>
+
+          {/* Verification Document Audit Card */}
+          <div
+            className="card"
+            style={{
+              padding: 16,
+              borderRadius: 12,
+              marginBottom: 12,
+              border: activeDocData
+                ? "1.5px solid rgba(16, 185, 129, 0.4)"
+                : "1.5px solid rgba(245, 158, 11, 0.4)",
+              background: activeDocData
+                ? "linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(5, 150, 105, 0.03) 100%)"
+                : "linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(217, 119, 6, 0.03) 100%)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, flexWrap: "wrap", gap: 6 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 18 }}>
+                  {state.data.employment_type === "EMPLOYEE" ? "🪪" : "🏢"}
+                </span>
+                <span style={{ fontWeight: 700, fontSize: 14 }}>
+                  {state.data.employment_type === "EMPLOYEE"
+                    ? "Required Document: Employee ID / የሰራተኛ መታወቂያ"
+                    : "Required Document: Renewed Business License / የታደሰ ንግድ ፈቃድ"}
+                </span>
+              </div>
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  padding: "3px 10px",
+                  borderRadius: 20,
+                  background: activeDocData
+                    ? "rgba(16, 185, 129, 0.2)"
+                    : "rgba(245, 158, 11, 0.2)",
+                  color: activeDocData ? "#10b981" : "#f59e0b",
+                  border: `1px solid ${activeDocData ? "rgba(16, 185, 129, 0.4)" : "rgba(245, 158, 11, 0.4)"}`,
+                }}
+              >
+                {activeDocData ? "✓ Document Uploaded" : "⚠️ Document Not Uploaded"}
+              </span>
+            </div>
+
+            {activeDocData ? (
+              <div style={{ marginTop: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                  {activeDocData.startsWith("data:image/") && (
+                    <div
+                      onClick={() => setShowDocumentModal(true)}
+                      style={{
+                        width: 80,
+                        height: 80,
+                        borderRadius: 8,
+                        overflow: "hidden",
+                        border: "1.5px solid rgba(255, 255, 255, 0.2)",
+                        cursor: "pointer",
+                        position: "relative",
+                        flexShrink: 0,
+                      }}
+                      title="Click to zoom / inspect"
+                    >
+                      <img
+                        src={activeDocData}
+                        alt="Applicant Verification Document"
+                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      />
+                    </div>
+                  )}
+                  <div style={{ flex: 1, minWidth: 200 }}>
+                    <div style={{ fontWeight: 600, fontSize: 13, color: "var(--tg-text, #fff)" }}>
+                      {activeDocName || (state.data.employment_type === "EMPLOYEE" ? "Employee_ID.jpg" : "Business_License.jpg")}
+                    </div>
+                    <div style={{ fontSize: 12, color: "var(--tg-hint, #94a3b8)", marginTop: 2 }}>
+                      Verified applicant submission. Inspect document carefully before approving or rejecting.
+                    </div>
+                    <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+                      <button
+                        type="button"
+                        onClick={() => setShowDocumentModal(true)}
+                        style={{
+                          padding: "6px 14px",
+                          borderRadius: 6,
+                          fontSize: 12.5,
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          background: "#3b82f6",
+                          color: "#fff",
+                          border: "none",
+                        }}
+                      >
+                        👁️ View Full Document
+                      </button>
+                      <a
+                        href={activeDocData}
+                        download={activeDocName || "applicant_document"}
+                        style={{
+                          padding: "6px 14px",
+                          borderRadius: 6,
+                          fontSize: 12.5,
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          background: "rgba(255, 255, 255, 0.1)",
+                          color: "var(--tg-text, #fff)",
+                          border: "1px solid rgba(255, 255, 255, 0.2)",
+                          textDecoration: "none",
+                          display: "inline-flex",
+                          alignItems: "center",
+                        }}
+                      >
+                        📥 Download
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div style={{ marginTop: 8, fontSize: 12.5, color: "#fbbf24", lineHeight: 1.5 }}>
+                Applicant skipped document upload during registration ("Without this information you may be rejected").
+                You can reject this application for missing proof or approve if verified offline.
+              </div>
             )}
           </div>
 
@@ -543,6 +884,32 @@ function RegistrationDetailView({ id, onBack }: { id: string; onBack: () => void
             value={rejectReason}
             onChange={(e) => setRejectReason(e.target.value)}
           />
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", margin: "8px 0" }}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              style={{ fontSize: 11, padding: "4px 8px" }}
+              onClick={() => setRejectReason("Missing required Employee ID")}
+            >
+              + Missing Employee ID
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              style={{ fontSize: 11, padding: "4px 8px" }}
+              onClick={() => setRejectReason("Missing required renewed Business License")}
+            >
+              + Missing Business License
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              style={{ fontSize: 11, padding: "4px 8px" }}
+              onClick={() => setRejectReason("Invalid or illegible document image")}
+            >
+              + Illegible Document
+            </button>
+          </div>
           {rejectReason.trim().length > 0 && rejectReason.trim().length < 3 && (
             <span className="field-error">{t.registrations.rejectReasonRequired}</span>
           )}
@@ -562,6 +929,87 @@ function RegistrationDetailView({ id, onBack }: { id: string; onBack: () => void
             ⚠️ This will permanently delete this registration record. This cannot be undone.
           </p>
         </ConfirmDialog>
+      )}
+
+      {/* Full Resolution Document Viewer Lightbox Modal */}
+      {showDocumentModal && activeDocData && (
+        <div
+          onClick={() => setShowDocumentModal(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0, 0, 0, 0.85)",
+            zIndex: 99999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16,
+            backdropFilter: "blur(4px)",
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "#1e293b",
+              borderRadius: 14,
+              maxWidth: "92vw",
+              maxHeight: "92vh",
+              overflow: "hidden",
+              display: "flex",
+              flexDirection: "column",
+              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
+              border: "1px solid rgba(255, 255, 255, 0.1)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "12px 18px",
+                borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+              }}
+            >
+              <div style={{ fontWeight: 700, fontSize: 15, color: "#fff" }}>
+                📄 {activeDocName || "Verification Document"} ({state.data.employment_type === "EMPLOYEE" ? "Employee ID" : "Business License"})
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowDocumentModal(false)}
+                style={{
+                  background: "rgba(255, 255, 255, 0.1)",
+                  border: "none",
+                  borderRadius: 6,
+                  color: "#fff",
+                  fontSize: 16,
+                  cursor: "pointer",
+                  width: 32,
+                  height: 32,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                ✕
+              </button>
+            </div>
+            <div style={{ padding: 12, overflow: "auto", display: "flex", justifyContent: "center", maxHeight: "calc(92vh - 65px)" }}>
+              {activeDocData.startsWith("data:image/") ? (
+                <img
+                  src={activeDocData}
+                  alt="Verification Document"
+                  style={{ maxWidth: "100%", maxHeight: "75vh", objectFit: "contain", borderRadius: 8 }}
+                />
+              ) : (
+                <iframe
+                  src={activeDocData}
+                  style={{ width: "80vw", height: "70vh", border: "none" }}
+                  title="Document Preview"
+                />
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

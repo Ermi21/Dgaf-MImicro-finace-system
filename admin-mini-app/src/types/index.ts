@@ -82,6 +82,8 @@ export interface RegistrationListItem {
   city_name: string;
   subcity_name: string;
   woreda_name: string;
+  document_name?: string | null;
+  document_data?: string | null;
 }
 
 export interface RegistrationDetail {
@@ -93,6 +95,8 @@ export interface RegistrationDetail {
   gender: Gender | null;
   sex: Gender | null;
   national_id?: string | null;
+  document_name?: string | null;
+  document_data?: string | null;
   referral_type?: ReferralType | null;
   referral_name?: string | null;
   referral_admin_id?: string | null;

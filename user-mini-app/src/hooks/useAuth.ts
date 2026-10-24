@@ -8,12 +8,6 @@ type AuthState =
 
 export function useAuth(): AuthState {
   const [state, setState] = useState<AuthState>(() => {
-    const isDev = import.meta.env.DEV && !window.Telegram?.WebApp?.initData;
-    if (isDev) {
-      setAccessToken("dev-token", { isAdmin: false, role: null, permissions: [] });
-      return { status: "ready", isAdmin: false, role: null };
-    }
-
     const cached = getStoredUserSession();
     if (cached) {
       setAccessToken(cached.accessToken, {
@@ -28,11 +22,6 @@ export function useAuth(): AuthState {
   });
 
   useEffect(() => {
-    const isDev = import.meta.env.DEV && !window.Telegram?.WebApp?.initData;
-    if (isDev) {
-      return;
-    }
-
     let cancelled = false;
 
     loginWithTelegram()
@@ -42,14 +31,13 @@ export function useAuth(): AuthState {
       })
       .catch((err: unknown) => {
         if (cancelled) return;
-        // If we already had a valid stored session, don't crash on background re-check
         const cached = getStoredUserSession();
         if (cached) return;
 
         const message =
           err instanceof ApiRequestError
             ? err.message
-            : "Couldn't verify your Telegram session. Please reopen this from the bot.";
+            : "Couldn't verify your session. Please reopen.";
         setState({ status: "error", message });
       });
 

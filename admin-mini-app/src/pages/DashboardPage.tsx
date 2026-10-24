@@ -160,16 +160,10 @@ export function DashboardPage() {
 
   useEffect(() => {
     activeRangeRef.current = dateRange;
-    const cacheKey = `${dateRange}_${payoutRate}`;
-    const cached = periodCache.get(cacheKey);
-    if (cached) {
-      setStats(cached.stats);
-      setReferralData(cached.referralData);
-      setLoading(false);
-      fetchDataForRange(dateRange, false);
-    } else {
-      fetchDataForRange(dateRange, false);
-    }
+    // Always fetch fresh data on mount to guarantee perfect sync across all pages
+    periodCache.clear();
+    clearApiCache("/reports");
+    fetchDataForRange(dateRange, false);
 
     // Background sync every 25s when tab is active
     const interval = setInterval(() => {
@@ -580,7 +574,7 @@ export function DashboardPage() {
                   <thead>
                     <tr>
                       <th>Inviter / Referrer</th>
-                      <th>Type</th>
+                      <th>Role</th>
                       <th style={{ textAlign: "center" }}>Invites</th>
                       <th style={{ textAlign: "center" }}>Approved</th>
                       <th style={{ textAlign: "center" }}>Pending</th>
@@ -589,30 +583,33 @@ export function DashboardPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {referralData.referrers.map((ref, idx) => (
-                      <tr
-                        key={idx}
-                        className={selectedReferrer?.referrer_name === ref.referrer_name ? "row-selected" : ""}
-                      >
-                        <td style={{ fontWeight: 600 }}>
-                          <span style={{ marginRight: 8, fontSize: 16 }}>
-                            {idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : "👤"}
-                          </span>
-                          {ref.referrer_name}
-                        </td>
-                        <td>
-                          <span
-                            className="referral-type-tag"
-                            style={{
-                              background: ref.referral_type === "ADMIN" ? "rgba(16, 185, 129, 0.15)" : "rgba(245, 158, 11, 0.15)",
-                              color: ref.referral_type === "ADMIN" ? "#34d399" : "#fbbf24",
-                              borderColor: ref.referral_type === "ADMIN" ? "rgba(16, 185, 129, 0.3)" : "rgba(245, 158, 11, 0.3)",
-                            }}
-                          >
-                            {ref.referral_type}
-                          </span>
-                        </td>
-                        <td style={{ textAlign: "center", fontWeight: 700 }}>{ref.total_invites}</td>
+                    {referralData.referrers.map((ref, idx) => {
+                      const isAdm = ref.referral_type === "ADMIN";
+                      const roleLabel = isAdm ? "Admin" : "Customer";
+                      return (
+                        <tr
+                          key={idx}
+                          className={selectedReferrer?.referrer_name === ref.referrer_name ? "row-selected" : ""}
+                        >
+                          <td style={{ fontWeight: 600 }}>
+                            <span style={{ marginRight: 8, fontSize: 16 }}>
+                              {idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : "👤"}
+                            </span>
+                            {ref.referrer_name}
+                          </td>
+                          <td>
+                            <span
+                              className="referral-type-tag"
+                              style={{
+                                background: isAdm ? "rgba(16, 185, 129, 0.15)" : "rgba(245, 158, 11, 0.15)",
+                                color: isAdm ? "#34d399" : "#fbbf24",
+                                borderColor: isAdm ? "rgba(16, 185, 129, 0.3)" : "rgba(245, 158, 11, 0.3)",
+                              }}
+                            >
+                              {roleLabel}
+                            </span>
+                          </td>
+                          <td style={{ textAlign: "center", fontWeight: 700 }}>{ref.total_invites}</td>
                         <td style={{ textAlign: "center", color: "#10b981", fontWeight: 700 }}>
                           {ref.approved_invites}
                         </td>
@@ -636,7 +633,8 @@ export function DashboardPage() {
                           </button>
                         </td>
                       </tr>
-                    ))}
+                    );
+                  })}
                   </tbody>
                 </table>
               </div>

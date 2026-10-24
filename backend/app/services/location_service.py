@@ -49,7 +49,21 @@ ETHIOPIAN_CITY_HIERARCHIES: dict[str, dict[str, list[str]]] = {
         "Melka Adama": [f"Woreda {i:02d}" for i in range(1, 5)],
         "Lugo": [f"Woreda {i:02d}" for i in range(1, 5)],
     },
+    "adma": {
+        "Boku": [f"Woreda {i:02d}" for i in range(1, 5)],
+        "Dugda": [f"Woreda {i:02d}" for i in range(1, 5)],
+        "Geda": [f"Woreda {i:02d}" for i in range(1, 5)],
+        "Melka Adama": [f"Woreda {i:02d}" for i in range(1, 5)],
+        "Lugo": [f"Woreda {i:02d}" for i in range(1, 5)],
+    },
     "dire dawa": {
+        "Sabian": [f"Woreda {i:02d}" for i in range(1, 5)],
+        "Megala": [f"Woreda {i:02d}" for i in range(1, 5)],
+        "Gende Kore": [f"Woreda {i:02d}" for i in range(1, 5)],
+        "Dechatu": [f"Woreda {i:02d}" for i in range(1, 5)],
+        "Melka Jebdu": [f"Woreda {i:02d}" for i in range(1, 5)],
+    },
+    "dire dewa": {
         "Sabian": [f"Woreda {i:02d}" for i in range(1, 5)],
         "Megala": [f"Woreda {i:02d}" for i in range(1, 5)],
         "Gende Kore": [f"Woreda {i:02d}" for i in range(1, 5)],

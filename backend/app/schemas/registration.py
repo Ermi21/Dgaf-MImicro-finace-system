@@ -26,6 +26,8 @@ class RegistrationCreate(BaseModel):
     gender: Gender | None = None
     sex: Sex | None = None  # Backward compatibility
     national_id: str | None = None
+    document_name: str | None = None
+    document_data: str | None = None
 
     # Referral info
     referral_type: ReferralType | None = ReferralType.NONE
@@ -96,6 +98,8 @@ class RegistrationRead(TimestampedRead):
     gender: Gender | None = None
     sex: Sex | None = None
     national_id: str | None = None
+    document_name: str | None = None
+    document_data: str | None = None
     referral_type: ReferralType | None = None
     referral_name: str | None = None
     referral_admin_id: UUID | None = None
@@ -120,6 +124,7 @@ class RegistrationListItem(TimestampedRead):
     gender: Gender | None = None
     sex: Sex | None = None
     national_id: str | None = None
+    document_name: str | None = None
     referral_type: ReferralType | None = None
     referral_name: str | None = None
     referral_admin_id: UUID | None = None

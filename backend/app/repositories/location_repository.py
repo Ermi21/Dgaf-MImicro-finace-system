@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import case, func, select
 
 from app.models.location import City, Subcity, Woreda
 from app.repositories.base import BaseRepository
@@ -12,11 +12,15 @@ class CityRepository(BaseRepository[City]):
     model = City
 
     async def list_active(self) -> list[City]:
-        result = await self.session.execute(select(City).where(City.is_active.is_(True)).order_by(City.name))
+        result = await self.session.execute(
+            select(City)
+            .where(City.is_active.is_(True))
+            .order_by(case((func.lower(City.name).like("%addis%"), 0), else_=1), City.name)
+        )
         return list(result.scalars().all())
 
     async def list_all(self, include_inactive: bool = False) -> list[City]:
-        stmt = select(City).order_by(City.name)
+        stmt = select(City).order_by(case((func.lower(City.name).like("%addis%"), 0), else_=1), City.name)
         if not include_inactive:
             stmt = stmt.where(City.is_active.is_(True))
         result = await self.session.execute(stmt)

@@ -55,6 +55,8 @@ class Registration(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         Enum(Gender, name="gender", native_enum=True), nullable=True
     )
     national_id: Mapped[str | None] = mapped_column(Text, nullable=True)
+    document_name: Mapped[str | None] = mapped_column(Text, nullable=True)
+    document_data: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Referral system
     referral_type: Mapped[ReferralType | None] = mapped_column(

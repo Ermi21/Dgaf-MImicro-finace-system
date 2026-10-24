@@ -4,7 +4,7 @@ import { getInitDataAsync } from "./telegram";
 const BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
   import.meta.env.VITE_BACKEND_URL ||
-  "";
+  "https://job-platform-backend-nbq3.onrender.com";
 
 export class ApiRequestError extends Error {
   code: string;
@@ -171,14 +171,42 @@ export async function loginWithTelegram(): Promise<{
   if (!loginPromise) {
     loginPromise = (async () => {
       let initData = await getInitDataAsync();
-      if (!initData && import.meta.env.PROD) {
-        throw new ApiRequestError(
-          401,
-          "missing_telegram_init_data",
-          "Telegram did not provide session data. Please reopen this from the bot.",
-        );
+      if (!initData) {
+        if (import.meta.env.PROD) {
+          throw new ApiRequestError(
+            401,
+            "missing_telegram_init_data",
+            "Telegram did not provide session data. Please reopen this from the bot.",
+          );
+        }
+        // Local development or browser preview outside Telegram:
+        try {
+          const devResult = await request<{
+            access_token: string;
+            is_admin: boolean;
+            role: string | null;
+            permissions: string[];
+          }>("/api/v1/auth/admin-web-login", {
+            method: "POST",
+            body: { username: "admin", password: "admin123456" },
+            auth: false,
+          });
+          setAccessToken(devResult.access_token, {
+            isAdmin: devResult.is_admin,
+            role: devResult.role,
+            permissions: devResult.permissions,
+          });
+          return devResult;
+        } catch {
+          setAccessToken("dev-token", { isAdmin: false, role: null, permissions: [] });
+          return {
+            access_token: "dev-token",
+            is_admin: false,
+            role: null,
+            permissions: [],
+          };
+        }
       }
-      initData = initData || "";
 
       const result = await request<{
         access_token: string;
