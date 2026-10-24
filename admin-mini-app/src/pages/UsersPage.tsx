@@ -49,7 +49,7 @@ export function UsersPage() {
       setCustomerToDelete(null);
       state.reload();
     } catch (err: any) {
-      const msg = err?.message || (typeof err === "string" ? err : t.common.somethingWrong);
+      const msg = err instanceof ApiRequestError ? err.message : (err?.message || (typeof err === "string" ? err : t.common.somethingWrong));
       setDeleteError(msg);
     } finally {
       setDeleting(false);
@@ -279,7 +279,7 @@ export function UsersPage() {
                         title={t.users.deleteCustomer}
                       >
                         <span>🗑</span>
-                        <span>{t.common.delete || "Delete"}</span>
+                        <span>{t.common.delete}</span>
                       </button>
                     </div>
                   </div>

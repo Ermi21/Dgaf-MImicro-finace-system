@@ -1,4 +1,4 @@
-import type { ApiError, LoginResult } from "../types";
+import type { LoginResult } from "../types";
 import { getInitDataAsync } from "./telegram";
 
 const BASE_URL =

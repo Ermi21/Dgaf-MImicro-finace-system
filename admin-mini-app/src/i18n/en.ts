@@ -21,6 +21,7 @@ const en = {
     no: "No",
     active: "Active",
     inactive: "Inactive",
+    delete: "Delete",
   },
   nav: {
     dashboard: "Dashboard",

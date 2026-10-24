@@ -23,6 +23,7 @@ const am: Dictionary = {
     no: "አይ",
     active: "ንቁ",
     inactive: "ንቁ ያልሆነ",
+    delete: "ሰርዝ",
   },
   nav: {
     dashboard: "ዳሽቦርድ",

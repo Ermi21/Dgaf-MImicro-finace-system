@@ -61,7 +61,7 @@ export function useAuth() {
           permissions: result.permissions,
         });
       })
-      .catch((err: unknown) => {
+      .catch(() => {
         if (cancelled) return;
         const cached = getStoredSession();
         if (cached) return;
