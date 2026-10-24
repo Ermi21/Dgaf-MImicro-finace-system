@@ -104,6 +104,11 @@ export function RegisterPage({
   }
 
   useEffect(() => {
+    // Ensure location fields are strictly empty / null by default
+    setForm((f) => ({ ...f, city_id: "", subcity_id: "", woreda_id: "" }));
+  }, []);
+
+  useEffect(() => {
     Promise.all([api.get<City[]>("/api/v1/cities"), api.get<Job[]>("/api/v1/jobs/active")])
       .then(([cityList, jobList]) => {
         // Sort Addis Ababa FIRST instead of Adama, followed by the rest of the cities alphabetically
@@ -117,7 +122,8 @@ export function RegisterPage({
         setCities(sortedCities);
         setJobs(jobList);
         setDataLoaded(true);
-        // Do NOT pre-fill or auto-select any city by default; keep form.city_id empty/null
+        // Force reset location fields so city is empty (null placeholder "Select...")
+        setForm((f) => ({ ...f, city_id: "", subcity_id: "", woreda_id: "" }));
       })
       .catch((err) => {
         setLoadError(err instanceof ApiRequestError ? err.message : t.common.somethingWrong);

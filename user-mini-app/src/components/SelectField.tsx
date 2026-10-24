@@ -28,7 +28,7 @@ export function SelectField({
       <label htmlFor={fieldId}>{label}</label>
       <select
         id={fieldId}
-        value={value}
+        value={value || ""}
         disabled={disabled}
         aria-invalid={Boolean(error)}
         onChange={(e) => onChange(e.target.value)}
