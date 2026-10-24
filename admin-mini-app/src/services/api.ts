@@ -136,6 +136,7 @@ export function hasPermission(code: string): boolean {
 async function request<T>(
   path: string,
   options: { method?: string; body?: unknown; auth?: boolean } = {},
+  retries = 1,
 ): Promise<T> {
   const { method = "GET", body, auth = true } = options;
 
@@ -147,35 +148,58 @@ async function request<T>(
     headers["Authorization"] = `Bearer ${accessToken}`;
   }
 
-  const response = await fetch(`${BASE_URL}${path}`, {
-    method,
-    headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
+  try {
+    const controller = new AbortController();
+    const timeoutTimer = setTimeout(() => controller.abort(), 35000);
 
-  if (!response.ok) {
-    let parsed: any = null;
-    try {
-      parsed = await response.json();
-    } catch {
-      // response wasn't JSON - fall through to the generic error below
+    const response = await fetch(`${BASE_URL}${path}`, {
+      method,
+      headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutTimer);
+
+    if (!response.ok) {
+      if (response.status >= 502 && response.status <= 504 && retries > 0) {
+        await new Promise((r) => setTimeout(r, 2000));
+        return request<T>(path, options, retries - 1);
+      }
+
+      let parsed: any = null;
+      try {
+        parsed = await response.json();
+      } catch {
+        // response wasn't JSON - fall through to the generic error below
+      }
+      const code =
+        parsed?.error?.code ??
+        (typeof parsed?.detail === "string" ? "api_error" : "request_failed");
+      const message =
+        parsed?.error?.message ??
+        (typeof parsed?.detail === "string"
+          ? parsed.detail
+          : Array.isArray(parsed?.detail)
+            ? parsed.detail.map((d: any) => d.msg || JSON.stringify(d)).join(", ")
+            : `Request failed (${response.status})`);
+
+      throw new ApiRequestError(response.status, code, message);
     }
-    const code =
-      parsed?.error?.code ??
-      (typeof parsed?.detail === "string" ? "api_error" : "request_failed");
-    const message =
-      parsed?.error?.message ??
-      (typeof parsed?.detail === "string"
-        ? parsed.detail
-        : Array.isArray(parsed?.detail)
-          ? parsed.detail.map((d: any) => d.msg || JSON.stringify(d)).join(", ")
-          : `Request failed (${response.status})`);
 
-    throw new ApiRequestError(response.status, code, message);
+    if (response.status === 204) return undefined as T;
+    return (await response.json()) as T;
+  } catch (err: unknown) {
+    if (err instanceof ApiRequestError) throw err;
+    if (retries > 0) {
+      await new Promise((r) => setTimeout(r, 1500));
+      return request<T>(path, options, retries - 1);
+    }
+    throw new ApiRequestError(
+      503,
+      "network_error",
+      "Server is waking up or network connection timed out. Please retry.",
+    );
   }
-
-  if (response.status === 204) return undefined as T;
-  return (await response.json()) as T;
 }
 
 export async function loginWithTelegram(): Promise<LoginResult> {

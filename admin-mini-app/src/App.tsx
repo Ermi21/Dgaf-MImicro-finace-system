@@ -122,15 +122,7 @@ export default function App() {
   }
 
   if (auth.status === "loading") {
-    return (
-      <div className="screen" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "65vh", gap: 14 }}>
-        <DigafLogo size={36} adminBadge={true} />
-        <LoadingSpinner />
-        <span style={{ fontSize: 13, color: "var(--tg-hint, #888)", fontWeight: 500 }}>
-          Opening Admin Portal...
-        </span>
-      </div>
-    );
+    return <AdminLoadingScreen onRetry={() => window.location.reload()} onBackToLogin={logout} />;
   }
 
   if (auth.status === "unauthenticated") {
@@ -349,6 +341,82 @@ function DevBanner() {
       }}
     >
       ⚠️ DEV PREVIEW — Open from the bot for full functionality.
+    </div>
+  );
+}
+
+function AdminLoadingScreen({
+  onRetry,
+  onBackToLogin,
+}: {
+  onRetry: () => void;
+  onBackToLogin: () => void;
+}) {
+  const [seconds, setSeconds] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => setSeconds((s) => s + 1), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div
+      className="screen"
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        minHeight: "70vh",
+        gap: 14,
+        padding: "24px 16px",
+        textAlign: "center",
+      }}
+    >
+      <DigafLogo size={42} adminBadge={true} />
+      <LoadingSpinner />
+      <span style={{ fontSize: 15, color: "var(--tg-text, #f8fafc)", fontWeight: 600, marginTop: 4 }}>
+        {seconds < 8
+          ? "Opening Admin Portal..."
+          : seconds < 25
+          ? "Connecting to cloud backend..."
+          : "Server is waking up from standby..."}
+      </span>
+      {seconds >= 8 && (
+        <p
+          style={{
+            fontSize: 12.5,
+            color: "var(--tg-hint, #94a3b8)",
+            maxWidth: 380,
+            margin: "0 0 6px",
+            lineHeight: 1.55,
+          }}
+        >
+          {seconds < 25
+            ? "Render free-tier instances sleep when idle. First boot may take ~30–45s."
+            : "The cloud server is taking a moment to finish starting. Please hang tight or retry below."}
+        </p>
+      )}
+      {seconds >= 20 && (
+        <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+          <button
+            type="button"
+            className="btn btn-primary"
+            style={{ padding: "8px 16px", fontSize: 13, minHeight: 36 }}
+            onClick={onRetry}
+          >
+            🔄 Retry Connection
+          </button>
+          <button
+            type="button"
+            className="btn btn-back"
+            style={{ padding: "8px 16px", fontSize: 13, minHeight: 36 }}
+            onClick={onBackToLogin}
+          >
+            Back to Login
+          </button>
+        </div>
+      )}
     </div>
   );
 }
