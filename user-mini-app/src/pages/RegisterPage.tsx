@@ -8,6 +8,7 @@ import { TextField } from "../components/TextField";
 import { SelectField } from "../components/SelectField";
 import { LoadingSpinner, ErrorBanner, SuccessCheck } from "../components/Feedback";
 import { ReviewRow } from "../components/ReviewRow";
+import { CameraModal } from "../components/CameraModal";
 import { DEFAULT_CITIES, DEFAULT_JOBS, ADDIS_ABABA_SUBCITIES, getDefaultWoredasForSubcity } from "../constants/defaults";
 
 // Step 0 = Language chooser, then 1-4 as before
@@ -77,6 +78,7 @@ export function RegisterPage({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submittedJobName, setSubmittedJobName] = useState<string | null>(null);
   const [showDocWarningModal, setShowDocWarningModal] = useState(false);
+  const [activeCameraModal, setActiveCameraModal] = useState<"EMPLOYEE" | "SELF_EMPLOYED" | null>(null);
 
   // Camera / file input refs
   const employeeFileRef = useRef<HTMLInputElement>(null);
@@ -817,7 +819,7 @@ export function RegisterPage({
                   />
                   <button
                     type="button"
-                    onClick={() => employeeCameraRef.current?.click()}
+                    onClick={() => setActiveCameraModal("EMPLOYEE")}
                     style={{
                       flex: 1,
                       minWidth: 120,
@@ -945,7 +947,7 @@ export function RegisterPage({
                   />
                   <button
                     type="button"
-                    onClick={() => businessCameraRef.current?.click()}
+                    onClick={() => setActiveCameraModal("SELF_EMPLOYED")}
                     style={{
                       flex: 1,
                       minWidth: 120,
@@ -1181,6 +1183,25 @@ export function RegisterPage({
           </div>
         </div>
       )}
+
+      {/* Live Camera Viewfinder Modal */}
+      <CameraModal
+        isOpen={Boolean(activeCameraModal)}
+        title={activeCameraModal === "EMPLOYEE" ? t.register.uploadEmployeeId : t.register.uploadBusinessLicense}
+        onClose={() => setActiveCameraModal(null)}
+        onCapture={(file) => {
+          if (activeCameraModal) {
+            handleFileSelected(file, activeCameraModal);
+          }
+        }}
+        onFallbackToFile={() => {
+          if (activeCameraModal === "EMPLOYEE") {
+            employeeFileRef.current?.click();
+          } else if (activeCameraModal === "SELF_EMPLOYED") {
+            businessFileRef.current?.click();
+          }
+        }}
+      />
     </div>
   );
 }
