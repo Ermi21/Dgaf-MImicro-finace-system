@@ -44,6 +44,11 @@ export default function App() {
   }
 
   useEffect(() => {
+    // Warm up the deployed backend on Render immediately in the background
+    fetch("https://job-platform-backend-nbq3.onrender.com/health", { mode: "no-cors" }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
     if (view === "home") {
       hideMainButton();
       // Always return a cleanup function so React never tries to call void.

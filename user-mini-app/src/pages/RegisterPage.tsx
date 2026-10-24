@@ -8,6 +8,7 @@ import { TextField } from "../components/TextField";
 import { SelectField } from "../components/SelectField";
 import { LoadingSpinner, ErrorBanner, SuccessCheck } from "../components/Feedback";
 import { ReviewRow } from "../components/ReviewRow";
+import { DEFAULT_CITIES, DEFAULT_JOBS, ADDIS_ABABA_SUBCITIES, getDefaultWoredasForSubcity } from "../constants/defaults";
 
 // Step 0 = Language chooser, then 1-4 as before
 type Step = 0 | 1 | 2 | 3 | 4;
@@ -65,13 +66,13 @@ export function RegisterPage({
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
 
-  const [cities, setCities] = useState<City[]>([]);
+  const [cities, setCities] = useState<City[]>(DEFAULT_CITIES);
   const [subcities, setSubcities] = useState<Subcity[]>([]);
   const [woredas, setWoredas] = useState<Woreda[]>([]);
-  const [jobs, setJobs] = useState<Job[]>([]);
+  const [jobs, setJobs] = useState<Job[]>(DEFAULT_JOBS);
 
-  const [dataLoaded, setDataLoaded] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [dataLoaded, setDataLoaded] = useState(true);
+  const [loadError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submittedJobName, setSubmittedJobName] = useState<string | null>(null);
@@ -111,19 +112,23 @@ export function RegisterPage({
   useEffect(() => {
     Promise.all([api.get<City[]>("/api/v1/cities"), api.get<Job[]>("/api/v1/jobs/active")])
       .then(([cityList, jobList]) => {
-        // Natural alphabetical sorting (Adama, Addis Ababa down in the list, etc.)
-        const sortedCities = [...cityList].sort((a, b) => a.name.localeCompare(b.name));
+        // Addis Ababa FIRST, followed by the rest of the cities alphabetically
+        const sortedCities = [...cityList].sort((a, b) => {
+          const aIsAddis = a.name.toLowerCase().includes("addis");
+          const bIsAddis = b.name.toLowerCase().includes("addis");
+          if (aIsAddis && !bIsAddis) return -1;
+          if (!aIsAddis && bIsAddis) return 1;
+          return a.name.localeCompare(b.name);
+        });
         setCities(sortedCities);
-        setJobs(jobList);
+        if (jobList && jobList.length > 0) setJobs(jobList);
         setDataLoaded(true);
-        // Force reset location fields so city is empty (null placeholder "Select...")
-        setForm((f) => ({ ...f, city_id: "", subcity_id: "", woreda_id: "" }));
       })
-      .catch((err) => {
-        setLoadError(err instanceof ApiRequestError ? err.message : t.common.somethingWrong);
+      .catch(() => {
+        // Fallback already preloaded with DEFAULT_CITIES and DEFAULT_JOBS
         setDataLoaded(true);
       });
-  }, [t.common.somethingWrong]);
+  }, []);
 
   useEffect(() => {
     if (!form.city_id) {
@@ -131,19 +136,23 @@ export function RegisterPage({
       return;
     }
     const currentCity = cities.find((c) => c.id === form.city_id);
-    const isAddis = currentCity?.name.toLowerCase().includes("addis") ?? false;
+    const isAddis = currentCity
+      ? currentCity.name.toLowerCase().includes("addi") || currentCity.name.toLowerCase().includes("adis")
+      : false;
+
+    if (isAddis) {
+      setSubcities(ADDIS_ABABA_SUBCITIES);
+    }
 
     setLoadingSubcities(true);
     api
       .get<Subcity[]>(`/api/v1/cities/${form.city_id}/subcities`)
       .then((subs) => {
-        setSubcities(subs);
-        // For non-Addis Ababa cities, automatically set the first subcity for backend FK validation
-        if (!isAddis && subs.length > 0) {
-          update("subcity_id", subs[0].id);
-        }
+        if (subs && subs.length > 0) setSubcities(subs);
       })
-      .catch(() => setSubcities([]))
+      .catch(() => {
+        if (isAddis) setSubcities(ADDIS_ABABA_SUBCITIES);
+      })
       .finally(() => setLoadingSubcities(false));
   }, [form.city_id, cities]);
 
@@ -152,22 +161,20 @@ export function RegisterPage({
       setWoredas([]);
       return;
     }
-    const currentCity = cities.find((c) => c.id === form.city_id);
-    const isAddis = currentCity?.name.toLowerCase().includes("addis") ?? false;
+    const defaults = getDefaultWoredasForSubcity(form.subcity_id);
+    if (defaults.length > 0) {
+      setWoredas(defaults);
+    }
 
     setLoadingWoredas(true);
     api
       .get<Woreda[]>(`/api/v1/subcities/${form.subcity_id}/woredas`)
       .then((words) => {
-        setWoredas(words);
-        // For non-Addis Ababa cities, automatically set the first woreda for backend FK validation
-        if (!isAddis && words.length > 0) {
-          update("woreda_id", words[0].id);
-        }
+        if (words && words.length > 0) setWoredas(words);
       })
-      .catch(() => setWoredas([]))
+      .catch(() => {})
       .finally(() => setLoadingWoredas(false));
-  }, [form.subcity_id, form.city_id, cities]);
+  }, [form.subcity_id]);
 
   useEffect(() => {
     if (jobs.length > 0 && !form.job_id) {
@@ -235,12 +242,8 @@ export function RegisterPage({
     }
     if (current === 2) {
       if (!form.city_id) next.city_id = t.register.validationRequired;
-      const selectedCityObj = cities.find((c) => c.id === form.city_id);
-      const isAddis = selectedCityObj?.name.toLowerCase().includes("addis") ?? false;
-      if (isAddis) {
-        if (!form.subcity_id) next.subcity_id = t.register.validationRequired;
-        if (!form.woreda_id) next.woreda_id = t.register.validationRequired;
-      }
+      if (!form.subcity_id) next.subcity_id = t.register.validationRequired;
+      if (!form.woreda_id) next.woreda_id = t.register.validationRequired;
     }
     if (current === 3) {
       if (!form.employment_type) next.employment_type = t.register.validationRequired;
@@ -341,12 +344,13 @@ export function RegisterPage({
       const created = await api.post<{ job: Job }>("/api/v1/registrations", payload);
       setSubmittedJobName(created?.job?.name || (form.employment_type === "SELF_EMPLOYED" ? "Self-employed" : "Employee"));
       hapticSuccess();
-    } catch (err) {
+    } catch (err: any) {
       hapticError();
       if (err instanceof ApiRequestError && err.code === "duplicate_registration") {
         setSubmitError(t.register.duplicateError);
       } else {
-        setSubmitError(err instanceof ApiRequestError ? err.message : t.common.somethingWrong);
+        const msg = err?.message || (typeof err === "string" ? err : t.common.somethingWrong);
+        setSubmitError(msg);
       }
     } finally {
       setSubmitting(false);
@@ -369,7 +373,6 @@ export function RegisterPage({
   }, [isActive, step, form, submitting, submittedJobName]);
 
   const cityName = useMemo(() => cities.find((c) => c.id === form.city_id)?.name ?? "", [cities, form.city_id]);
-  const isAddisAbaba = useMemo(() => cityName.toLowerCase().includes("addis"), [cityName]);
   const subcityName = useMemo(
     () => subcities.find((s) => s.id === form.subcity_id)?.name ?? "",
     [subcities, form.subcity_id],
@@ -679,28 +682,24 @@ export function RegisterPage({
             options={cities.map((c) => ({ value: c.id, label: c.name }))}
             onChange={(v) => update("city_id", v)}
           />
-          {isAddisAbaba && (
-            <>
-              <SelectField
-                label={loadingSubcities ? `${t.register.subcity} (Loading...)` : t.register.subcity}
-                value={form.subcity_id}
-                placeholder={loadingSubcities ? "Loading subcities..." : t.register.selectPlaceholder}
-                error={errors.subcity_id}
-                disabled={!form.city_id || loadingSubcities}
-                options={subcities.map((s) => ({ value: s.id, label: s.name }))}
-                onChange={(v) => update("subcity_id", v)}
-              />
-              <SelectField
-                label={loadingWoredas ? `${t.register.woreda} (Loading...)` : t.register.woreda}
-                value={form.woreda_id}
-                placeholder={loadingWoredas ? "Loading woredas..." : t.register.selectPlaceholder}
-                error={errors.woreda_id}
-                disabled={!form.subcity_id || loadingWoredas}
-                options={woredas.map((w) => ({ value: w.id, label: w.name }))}
-                onChange={(v) => update("woreda_id", v)}
-              />
-            </>
-          )}
+          <SelectField
+            label={t.register.subcity}
+            value={form.subcity_id}
+            placeholder={subcities.length === 0 && loadingSubcities ? "Loading subcities..." : t.register.selectPlaceholder}
+            error={errors.subcity_id}
+            disabled={!form.city_id || (subcities.length === 0 && loadingSubcities)}
+            options={subcities.map((s) => ({ value: s.id, label: s.name }))}
+            onChange={(v) => update("subcity_id", v)}
+          />
+          <SelectField
+            label={t.register.woreda}
+            value={form.woreda_id}
+            placeholder={woredas.length === 0 && loadingWoredas ? "Loading woredas..." : t.register.selectPlaceholder}
+            error={errors.woreda_id}
+            disabled={!form.subcity_id || (woredas.length === 0 && loadingWoredas)}
+            options={woredas.map((w) => ({ value: w.id, label: w.name }))}
+            onChange={(v) => update("woreda_id", v)}
+          />
         </div>
       )}
 
@@ -1046,12 +1045,8 @@ export function RegisterPage({
             }`}
           />
           <ReviewRow label={t.register.city} value={cityName} />
-          {isAddisAbaba && (
-            <>
-              <ReviewRow label={t.register.subcity} value={subcityName} />
-              <ReviewRow label={t.register.woreda} value={woredaName} />
-            </>
-          )}
+          <ReviewRow label={t.register.subcity} value={subcityName} />
+          <ReviewRow label={t.register.woreda} value={woredaName} />
           <ReviewRow label={t.register.job} value={selectedJobDisplay} />
           {form.employment_type === "EMPLOYEE" && (
             <ReviewRow

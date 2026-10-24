@@ -1,4 +1,3 @@
-import type { ApiError } from "../types";
 import { getInitDataAsync } from "./telegram";
 
 const BASE_URL =
@@ -127,6 +126,7 @@ export function hasAccessToken(): boolean {
 async function request<T>(
   path: string,
   options: { method?: string; body?: unknown; auth?: boolean } = {},
+  retries = 1,
 ): Promise<T> {
   const { method = "GET", body, auth = true } = options;
 
@@ -138,28 +138,63 @@ async function request<T>(
     headers["Authorization"] = `Bearer ${accessToken}`;
   }
 
-  const response = await fetch(`${BASE_URL}${path}`, {
-    method,
-    headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
+  try {
+    const controller = new AbortController();
+    const timeoutTimer = setTimeout(() => controller.abort(), 35000);
 
-  if (!response.ok) {
-    let parsed: ApiError | null = null;
-    try {
-      parsed = await response.json();
-    } catch {
-      // response wasn't JSON - fall through to the generic error below
+    const response = await fetch(`${BASE_URL}${path}`, {
+      method,
+      headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutTimer);
+
+    if (!response.ok) {
+      if (response.status >= 502 && response.status <= 504 && retries > 0) {
+        await new Promise((r) => setTimeout(r, 2000));
+        return request<T>(path, options, retries - 1);
+      }
+
+      let parsed: any = null;
+      try {
+        parsed = await response.json();
+      } catch {
+        // response wasn't JSON - fall through to the generic error below
+      }
+
+      let errorMessage = parsed?.error?.message;
+      let errorCode = parsed?.error?.code ?? "request_failed";
+      if (!errorMessage && parsed?.detail) {
+        if (typeof parsed.detail === "string") {
+          errorMessage = parsed.detail;
+        } else if (Array.isArray(parsed.detail) && parsed.detail.length > 0) {
+          errorMessage = parsed.detail.map((d: any) => d.msg || "Invalid input").join("; ");
+          errorCode = "validation_error";
+        }
+      }
+
+      throw new ApiRequestError(
+        response.status,
+        errorCode,
+        errorMessage ?? `Request failed (${response.status})`,
+      );
+    }
+
+    if (response.status === 204) return undefined as T;
+    return (await response.json()) as T;
+  } catch (err: unknown) {
+    if (err instanceof ApiRequestError) throw err;
+    if (retries > 0) {
+      await new Promise((r) => setTimeout(r, 1500));
+      return request<T>(path, options, retries - 1);
     }
     throw new ApiRequestError(
-      response.status,
-      parsed?.error.code ?? "request_failed",
-      parsed?.error.message ?? `Request failed (${response.status})`,
+      503,
+      "network_error",
+      "Network connection is slow or server is waking up. Please retry in a moment.",
     );
   }
-
-  if (response.status === 204) return undefined as T;
-  return (await response.json()) as T;
 }
 
 export async function loginWithTelegram(): Promise<{
@@ -245,10 +280,24 @@ export const api = {
       if (cached && Date.now() < cached.expiresAt) {
         return cached.data as T;
       }
+      try {
+        const stored = localStorage.getItem("api_cache_" + path);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed && Date.now() < parsed.expiresAt) {
+            apiCache.set(path, parsed);
+            return parsed.data as T;
+          }
+        }
+      } catch {}
     }
     const data = await request<T>(path);
     const ttl = options?.ttlMs ?? getTtlForPath(path);
-    apiCache.set(path, { data, expiresAt: Date.now() + ttl });
+    const item = { data, expiresAt: Date.now() + ttl };
+    apiCache.set(path, item);
+    try {
+      localStorage.setItem("api_cache_" + path, JSON.stringify(item));
+    } catch {}
     return data;
   },
   post: async <T>(path: string, body?: unknown): Promise<T> => {
