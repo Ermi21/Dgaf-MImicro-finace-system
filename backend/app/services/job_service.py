@@ -77,7 +77,9 @@ class JobService:
         # submits employment_type.
         return active_jobs[0]
 
-    async def create_job(self, *, name: str, description: str | None, created_by: uuid.UUID) -> Job:
+    async def create_job(
+        self, *, name: str, description: str | None, created_by: uuid.UUID | None = None
+    ) -> Job:
         job = Job(name=name, description=description, created_by=created_by, updated_by=created_by)
         return await self.repo.add(job)
 
@@ -87,7 +89,7 @@ class JobService:
         *,
         name: str | None,
         description: str | None,
-        updated_by: uuid.UUID,
+        updated_by: uuid.UUID | None = None,
     ) -> Job:
         job = await self.repo.get_by_id(job_id)
         if not job:
@@ -99,7 +101,9 @@ class JobService:
         job.updated_by = updated_by
         return job
 
-    async def set_active(self, job_id: uuid.UUID, *, is_active: bool, updated_by: uuid.UUID) -> Job:
+    async def set_active(
+        self, job_id: uuid.UUID, *, is_active: bool, updated_by: uuid.UUID | None = None
+    ) -> Job:
         """Soft activate/deactivate. Jobs referenced by historical
         registrations are never hard-deleted (spec section 14)."""
         job = await self.repo.get_by_id(job_id)

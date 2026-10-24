@@ -35,6 +35,7 @@ const am: Dictionary = {
     reports: "ሪፖርቶች",
     activityLogs: "የእንቅስቃሴ መዝገቦች",
     adminManagement: "የአስተዳዳሪ አስተዳደር",
+    settings: "ቅንብሮች",
   },
   dashboard: {
     title: "ዳሽቦርድ",

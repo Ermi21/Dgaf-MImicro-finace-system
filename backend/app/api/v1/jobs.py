@@ -44,7 +44,9 @@ async def create_job(
 ):
     service = JobService(session)
     return await service.create_job(
-        name=payload.name, description=payload.description, created_by=UUID(actor.admin_id)
+        name=payload.name,
+        description=payload.description,
+        created_by=UUID(actor.admin_id) if actor.admin_id else None,
     )
 
 
@@ -60,7 +62,7 @@ async def update_job(
         job_id,
         name=payload.name,
         description=payload.description,
-        updated_by=UUID(actor.admin_id),
+        updated_by=UUID(actor.admin_id) if actor.admin_id else None,
     )
 
 
@@ -71,7 +73,9 @@ async def activate_job(
     session: AsyncSession = Depends(get_db),
 ):
     service = JobService(session)
-    return await service.set_active(job_id, is_active=True, updated_by=UUID(actor.admin_id))
+    return await service.set_active(
+        job_id, is_active=True, updated_by=UUID(actor.admin_id) if actor.admin_id else None
+    )
 
 
 @router.post("/{job_id}/deactivate", response_model=JobRead)
@@ -81,4 +85,6 @@ async def deactivate_job(
     session: AsyncSession = Depends(get_db),
 ):
     service = JobService(session)
-    return await service.set_active(job_id, is_active=False, updated_by=UUID(actor.admin_id))
+    return await service.set_active(
+        job_id, is_active=False, updated_by=UUID(actor.admin_id) if actor.admin_id else None
+    )

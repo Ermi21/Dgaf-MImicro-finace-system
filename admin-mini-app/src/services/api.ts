@@ -240,36 +240,16 @@ export async function loginWithCredentials(username: string, password: string): 
   const u = username.trim();
   const p = password.trim();
 
-  // Try the provided credentials first
-  try {
-    const result = await request<LoginResult>("/api/v1/auth/admin-web-login", {
-      method: "POST",
-      body: { username: u, password: p },
-      auth: false,
-    });
-    setSession(result.access_token, result.permissions, {
-      role: result.role,
-      isAdmin: result.is_admin,
-    });
-    return result;
-  } catch (err) {
-    // If user typed "admin" or "admin123", automatically try standard "admin123456"
-    if (p === "admin" || p === "admin123") {
-      try {
-        const fallback = await request<LoginResult>("/api/v1/auth/admin-web-login", {
-          method: "POST",
-          body: { username: u, password: "admin123456" },
-          auth: false,
-        });
-        setSession(fallback.access_token, fallback.permissions, {
-          role: fallback.role,
-          isAdmin: fallback.is_admin,
-        });
-        return fallback;
-      } catch {}
-    }
-    throw err;
-  }
+  const result = await request<LoginResult>("/api/v1/auth/admin-web-login", {
+    method: "POST",
+    body: { username: u, password: p },
+    auth: false,
+  });
+  setSession(result.access_token, result.permissions, {
+    role: result.role,
+    isAdmin: result.is_admin,
+  });
+  return result;
 }
 
 export function clearSession(): void {

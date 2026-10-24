@@ -33,6 +33,7 @@ const en = {
     reports: "Reports",
     activityLogs: "Activity Logs",
     adminManagement: "Admin Management",
+    settings: "Settings",
   },
   dashboard: {
     title: "Dashboard",

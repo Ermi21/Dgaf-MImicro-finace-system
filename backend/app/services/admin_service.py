@@ -24,7 +24,7 @@ class AdminManagementService:
         return await self.admins.list_with_roles()
 
     async def create_admin(
-        self, *, telegram_id: int, name: str, role_id: uuid.UUID, created_by: uuid.UUID
+        self, *, telegram_id: int, name: str, role_id: uuid.UUID, created_by: uuid.UUID | None = None
     ) -> Admin:
         existing = await self.admins.get_by_telegram_id(telegram_id)
         if existing:
@@ -52,7 +52,7 @@ class AdminManagementService:
         name: str | None,
         role_id: uuid.UUID | None,
         is_active: bool | None,
-        updated_by: uuid.UUID,
+        updated_by: uuid.UUID | None = None,
     ) -> Admin:
         admin = await self.admins.get_by_id(admin_id)
         if not admin:
@@ -94,7 +94,7 @@ class AdminManagementService:
         return sorted(await self.admins.get_permission_codes(role_id))
 
     async def set_role_permissions(
-        self, role_id: uuid.UUID, *, permission_codes: list[str], updated_by: uuid.UUID
+        self, role_id: uuid.UUID, *, permission_codes: list[str], updated_by: uuid.UUID | None = None
     ) -> list[str]:
         role = await self.roles.get_by_id(role_id)
         if not role:

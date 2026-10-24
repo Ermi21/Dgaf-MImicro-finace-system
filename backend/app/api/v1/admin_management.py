@@ -54,7 +54,7 @@ async def create_admin(
         telegram_id=payload.telegram_id,
         name=payload.name,
         role_id=payload.role_id,
-        created_by=UUID(actor.admin_id),
+        created_by=UUID(actor.admin_id) if actor.admin_id else None,
     )
     admin = await service.admins.get_by_telegram_id(admin.telegram_id)  # reload with role
     return _to_admin_read(admin)
@@ -73,7 +73,7 @@ async def update_admin(
         name=payload.name,
         role_id=payload.role_id,
         is_active=payload.is_active,
-        updated_by=UUID(actor.admin_id),
+        updated_by=UUID(actor.admin_id) if actor.admin_id else None,
     )
     admin = await service.admins.get_by_telegram_id(admin.telegram_id)  # reload with role
     return _to_admin_read(admin)
@@ -111,5 +111,7 @@ async def set_role_permissions(
 ):
     service = AdminManagementService(session)
     return await service.set_role_permissions(
-        role_id, permission_codes=payload.permission_codes, updated_by=UUID(actor.admin_id)
+        role_id,
+        permission_codes=payload.permission_codes,
+        updated_by=UUID(actor.admin_id) if actor.admin_id else None,
     )

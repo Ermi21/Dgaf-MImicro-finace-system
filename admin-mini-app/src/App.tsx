@@ -17,6 +17,7 @@ const NotificationsPage = lazy(() => import("./pages/NotificationsPage").then((m
 const ReportsPage = lazy(() => import("./pages/ReportsPage").then((m) => ({ default: m.ReportsPage })));
 const ActivityLogsPage = lazy(() => import("./pages/ActivityLogsPage").then((m) => ({ default: m.ActivityLogsPage })));
 const AdminManagementPage = lazy(() => import("./pages/AdminManagementPage").then((m) => ({ default: m.AdminManagementPage })));
+const SettingsPage = lazy(() => import("./pages/SettingsPage").then((m) => ({ default: m.SettingsPage })));
 const LoginPage = lazy(() => import("./pages/LoginPage").then((m) => ({ default: m.LoginPage })));
 
 import {
@@ -29,6 +30,7 @@ import {
   ReportsIcon,
   ActivityLogsIcon,
   AdminManagementIcon,
+  SettingsIcon,
 } from "./components/AdminIcons";
 
 /** True only in `npm run dev` AND outside a real Telegram client (initData is empty). */
@@ -43,7 +45,8 @@ type View =
   | "notifications"
   | "reports"
   | "activity-logs"
-  | "admin-management";
+  | "admin-management"
+  | "settings";
 
 const NAV_ITEMS: { view: View; permission: string; labelKey: string; icon: React.ReactNode }[] = [
   { view: "dashboard",        permission: Permissions.DASHBOARD_VIEW,    labelKey: "dashboard",       icon: <DashboardIcon /> },
@@ -55,6 +58,7 @@ const NAV_ITEMS: { view: View; permission: string; labelKey: string; icon: React
   { view: "reports",          permission: Permissions.REPORT_VIEW,       labelKey: "reports",         icon: <ReportsIcon /> },
   { view: "activity-logs",    permission: Permissions.ACTIVITY_LOG_VIEW, labelKey: "activityLogs",    icon: <ActivityLogsIcon /> },
   { view: "admin-management", permission: Permissions.ADMIN_MANAGE,      labelKey: "adminManagement", icon: <AdminManagementIcon /> },
+  { view: "settings",         permission: Permissions.SETTINGS_MANAGE,   labelKey: "settings",        icon: <SettingsIcon /> },
 ];
 
 function viewFromUrl(): View {
@@ -295,6 +299,11 @@ export default function App() {
               {visited.has("admin-management") && (
                 <div style={{ display: view === "admin-management" ? "block" : "none" }}>
                   <AdminManagementPage />
+                </div>
+              )}
+              {visited.has("settings") && (
+                <div style={{ display: view === "settings" ? "block" : "none" }}>
+                  <SettingsPage />
                 </div>
               )}
             </Suspense>
