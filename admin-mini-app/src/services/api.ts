@@ -230,7 +230,7 @@ export async function loginWithCredentials(username: string, password: string): 
     return result;
   } catch (err) {
     // If user typed "admin" or "admin123", automatically try standard "admin123456"
-    if ((p === "admin" || p === "admin123") && p !== "admin123456") {
+    if (p === "admin" || p === "admin123") {
       try {
         const fallback = await request<LoginResult>("/api/v1/auth/admin-web-login", {
           method: "POST",

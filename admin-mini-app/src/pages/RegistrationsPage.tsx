@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useI18n } from "../i18n";
 import { api, ApiRequestError, toQuery, clearApiCache } from "../services/api";
 import { useApi } from "../hooks/useApi";
@@ -471,17 +471,20 @@ function RegistrationDetailView({ id, onBack }: { id: string; onBack: () => void
 
   // If document was saved in browser localStorage (during dev/testing), fallback to it
   const localDoc = useMemo(() => {
-    if (state.status !== "success") return null;
+    if (state.status !== "success" || !state.data) return null;
     if (state.data.document_data) return null;
     try {
-      const stored = localStorage.getItem(`reg_doc_${state.data.user.phone}`);
-      if (stored) return JSON.parse(stored);
+      const phone = state.data.user?.phone;
+      if (phone) {
+        const stored = localStorage.getItem(`reg_doc_${phone}`);
+        if (stored) return JSON.parse(stored);
+      }
     } catch {}
     return null;
   }, [state]);
 
-  const activeDocData = state.status === "success" ? (state.data.document_data || localDoc?.fileData || null) : null;
-  const activeDocName = state.status === "success" ? (state.data.document_name || localDoc?.fileName || null) : null;
+  const activeDocData = state.status === "success" && state.data ? (state.data.document_data || localDoc?.fileData || null) : null;
+  const activeDocName = state.status === "success" && state.data ? (state.data.document_name || localDoc?.fileName || null) : null;
 
   async function sendDirectNotification() {
     if (!customNotifyMessage.trim()) return;
@@ -971,7 +974,7 @@ function RegistrationDetailView({ id, onBack }: { id: string; onBack: () => void
               }}
             >
               <div style={{ fontWeight: 700, fontSize: 15, color: "#fff" }}>
-                📄 {activeDocName || "Verification Document"} ({state.data.employment_type === "EMPLOYEE" ? "Employee ID" : "Business License"})
+                📄 {activeDocName || "Verification Document"} ({state.data?.employment_type === "EMPLOYEE" ? "Employee ID" : "Business License"})
               </div>
               <button
                 type="button"

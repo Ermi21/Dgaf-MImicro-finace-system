@@ -106,23 +106,12 @@ export function RegisterPage({
   useEffect(() => {
     Promise.all([api.get<City[]>("/api/v1/cities"), api.get<Job[]>("/api/v1/jobs/active")])
       .then(([cityList, jobList]) => {
-        // Sort Addis Ababa FIRST before all other cities
-        const sortedCities = [...cityList].sort((a, b) => {
-          const aIsAddis = a.name.toLowerCase().includes("addis");
-          const bIsAddis = b.name.toLowerCase().includes("addis");
-          if (aIsAddis && !bIsAddis) return -1;
-          if (!aIsAddis && bIsAddis) return 1;
-          return a.name.localeCompare(b.name);
-        });
+        // Sort cities alphabetically like normal (natural alphabetical order)
+        const sortedCities = [...cityList].sort((a, b) => a.name.localeCompare(b.name));
         setCities(sortedCities);
         setJobs(jobList);
         setDataLoaded(true);
-
-        // Auto-select Addis Ababa if nothing is selected yet
-        if (sortedCities.length > 0) {
-          const addis = sortedCities.find((c) => c.name.toLowerCase().includes("addis")) || sortedCities[0];
-          setForm((f) => ({ ...f, city_id: f.city_id || addis.id }));
-        }
+        // Default city is kept empty so user chooses their city
       })
       .catch((err) => {
         setLoadError(err instanceof ApiRequestError ? err.message : t.common.somethingWrong);
