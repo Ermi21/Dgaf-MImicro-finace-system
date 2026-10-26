@@ -45,12 +45,6 @@ export const ADDIS_ABABA_SUBCITIES: Subcity[] = [
     "is_active": true
   },
   {
-    "id": "12deefc7-0a56-48eb-8848-ef66812d30b6",
-    "name": "CMC",
-    "city_id": "627a11d6-d653-4eb0-b6b3-ba784b8afbd7",
-    "is_active": true
-  },
-  {
     "id": "775d39d5-f3dc-43e7-a500-b0cba3951a50",
     "name": "Gullele",
     "city_id": "627a11d6-d653-4eb0-b6b3-ba784b8afbd7",
@@ -77,12 +71,6 @@ export const ADDIS_ABABA_SUBCITIES: Subcity[] = [
   {
     "id": "3bb73ec7-a15f-4f24-94e5-c670cbb368dd",
     "name": "Lideta",
-    "city_id": "627a11d6-d653-4eb0-b6b3-ba784b8afbd7",
-    "is_active": true
-  },
-  {
-    "id": "74891562-7e5d-4c11-b8ba-8bd16ff98720",
-    "name": "Maxico",
     "city_id": "627a11d6-d653-4eb0-b6b3-ba784b8afbd7",
     "is_active": true
   },
@@ -396,14 +384,6 @@ export const REAL_WOREDAS_BY_SUBCITY: Record<string, Woreda[]> = {
       "id": "3988306a-3d50-4c5a-9f11-61b361195758",
       "name": "Woreda 14",
       "subcity_id": "fda9703e-9274-4aae-9b65-03b0511beb82",
-      "is_active": true
-    }
-  ],
-  "12deefc7-0a56-48eb-8848-ef66812d30b6": [
-    {
-      "id": "a441cef0-cf65-483a-b4ec-8c7b4e78d502",
-      "name": "yeka",
-      "subcity_id": "12deefc7-0a56-48eb-8848-ef66812d30b6",
       "is_active": true
     }
   ],
@@ -750,14 +730,6 @@ export const REAL_WOREDAS_BY_SUBCITY: Record<string, Woreda[]> = {
       "id": "c367697e-36de-4b45-8085-4c72e2690fb9",
       "name": "Woreda 10",
       "subcity_id": "3bb73ec7-a15f-4f24-94e5-c670cbb368dd",
-      "is_active": true
-    }
-  ],
-  "74891562-7e5d-4c11-b8ba-8bd16ff98720": [
-    {
-      "id": "13f69f95-85ac-4220-85a4-0571f9c3b31c",
-      "name": "01",
-      "subcity_id": "74891562-7e5d-4c11-b8ba-8bd16ff98720",
       "is_active": true
     }
   ],

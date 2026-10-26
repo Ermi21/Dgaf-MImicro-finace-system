@@ -192,7 +192,21 @@ export function RegisterPage({
     api
       .get<Subcity[]>(`/api/v1/cities/${form.city_id}/subcities`)
       .then((subs) => {
-        if (subs && subs.length > 0) setSubcities(subs);
+        if (subs && subs.length > 0) {
+          if (isAddis) {
+            const INVALID_NAMES = new Set(["cmc", "maxico", "mexico", "mixico"]);
+            const seen = new Set<string>();
+            const cleaned = subs.filter((s) => {
+              const lower = s.name.trim().toLowerCase();
+              if (INVALID_NAMES.has(lower) || seen.has(lower)) return false;
+              seen.add(lower);
+              return true;
+            });
+            setSubcities(cleaned.length > 0 ? cleaned : ADDIS_ABABA_SUBCITIES);
+          } else {
+            setSubcities(subs);
+          }
+        }
       })
       .catch(() => {
         if (isAddis) setSubcities(ADDIS_ABABA_SUBCITIES);
@@ -1448,11 +1462,13 @@ export function RegisterPage({
           >
             <div style={{ fontSize: 38, marginBottom: 8 }}>⚠️</div>
             <h3 style={{ margin: "0 0 8px", fontSize: 17, fontWeight: 700, color: "#fbbf24" }}>
-              {form.employment_type === "EMPLOYEE" ? "Employee ID Not Uploaded" : "Business License Not Uploaded"}
+              {form.employment_type === "EMPLOYEE"
+                ? "Employee ID or Confirmation Letter Not Uploaded"
+                : "Business License Not Uploaded"}
             </h3>
             <p style={{ fontSize: 13.5, color: "var(--tg-text, #e2e8f0)", lineHeight: 1.5, margin: "0 0 16px" }}>
               {form.employment_type === "EMPLOYEE"
-                ? "Without uploading this document, your application may be rejected by the admin."
+                ? "Without uploading your Employee ID or Employment Confirmation Letter (photo or PDF), your application may be rejected by the admin."
                 : "Without uploading your renewed business license, your application may be rejected by the admin."}
               <br />
               <span style={{ fontSize: 12, color: "var(--tg-hint, #94a3b8)", marginTop: 6, display: "inline-block" }}>

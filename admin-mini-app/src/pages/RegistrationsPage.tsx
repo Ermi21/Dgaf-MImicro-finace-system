@@ -721,7 +721,7 @@ function RegistrationDetailView({ id, onBack }: { id: string; onBack: () => void
                 </span>
                 <span style={{ fontWeight: 700, fontSize: 14 }}>
                   {state.data.employment_type === "EMPLOYEE"
-                    ? "Required Document: Employee ID / የሰራተኛ መታወቂያ"
+                    ? "Required Document: Employee ID or Employment Confirmation Letter / የሰራተኛ መታወቂያ ወይም የቅጥር ማረጋገጫ ደብዳቤ"
                     : "Required Document: Renewed Business License / የታደሰ ንግድ ፈቃድ"}
                 </span>
               </div>
