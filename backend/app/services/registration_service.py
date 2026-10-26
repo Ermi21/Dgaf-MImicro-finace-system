@@ -13,7 +13,10 @@ from app.core.exceptions import (
     PermissionDeniedError,
     ValidationFailedError,
 )
+from app.core.logging import get_logger
 from app.database.base import utcnow
+
+logger = get_logger(__name__)
 from app.models.admin import Admin
 from app.models.enums import ALLOWED_REGISTRATION_TRANSITIONS, ReferralType, RegistrationStatus
 from app.models.registration import Registration
