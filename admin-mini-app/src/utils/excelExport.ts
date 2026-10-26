@@ -180,6 +180,10 @@ export async function exportRegistrationsReportToExcel(
       "Phone Number",
       "National ID (Fayda)",
       "Gender",
+      "Employment Status",
+      "Employer / Business Name",
+      "Job Title / Nature of Business",
+      "Monthly Income / Salary (ETB)",
       "Job Category",
       "City",
       "Subcity / Zone",
@@ -197,11 +201,41 @@ export async function exportRegistrationsReportToExcel(
             ? (reg.referral_name || "Person")
             : "Direct (None)";
 
+      const empStatus =
+        reg.employment_type === "EMPLOYEE"
+          ? "Employed"
+          : reg.employment_type === "SELF_EMPLOYED"
+          ? "Self-Employed"
+          : "N/A";
+
+      const empDetails = reg.employment_details || {};
+      const companyOrBiz =
+        reg.employer_name ||
+        reg.business_name ||
+        empDetails.employer_name ||
+        empDetails.business_name ||
+        "N/A";
+
+      const roleOrNature =
+        empDetails.job_title ||
+        empDetails.nature_of_business ||
+        empDetails.business_type ||
+        reg.job_name;
+
+      const incomeOrSalary =
+        empDetails.monthly_salary ||
+        empDetails.monthly_business_income ||
+        "N/A";
+
       return [
         `${reg.user_first_name} ${reg.user_second_name}`,
         reg.user_phone,
         reg.national_id || "N/A",
         reg.gender || reg.sex || "N/A",
+        empStatus,
+        companyOrBiz,
+        roleOrNature,
+        incomeOrSalary,
         reg.job_name,
         reg.city_name,
         reg.subcity_name,
@@ -225,6 +259,10 @@ export async function exportRegistrationsReportToExcel(
       { wch: 18 },
       { wch: 22 },
       { wch: 12 },
+      { wch: 16 },
+      { wch: 28 },
+      { wch: 26 },
+      { wch: 22 },
       { wch: 24 },
       { wch: 18 },
       { wch: 20 },

@@ -57,9 +57,28 @@ export interface RegistrationCreatePayload {
   national_id?: string;
   referral_type?: ReferralType;
   referral_name?: string;
-  referral_admin_id?: string;
   document_name?: string;
   document_data?: string;
+
+  // Employed customer fields
+  employer_name?: string;
+  employer_address?: string;
+  job_title?: string;
+  employment_contract_type?: string;
+  length_of_employment?: string;
+  monthly_salary?: string;
+  employer_contact_phone?: string;
+
+  // Self-employed customer fields
+  business_name?: string;
+  business_type?: string;
+  business_address?: string;
+  business_ownership_type?: string;
+  nature_of_business?: string;
+  years_in_business?: string;
+  monthly_business_income?: string;
+  business_registration_number?: string;
+  business_contact_phone?: string;
 }
 
 export interface MyRegistrationItem {

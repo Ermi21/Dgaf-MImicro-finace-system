@@ -29,6 +29,29 @@ class RegistrationCreate(BaseModel):
     document_name: str | None = None
     document_data: str | None = None
 
+    # Employed info
+    employer_name: str | None = None
+    employer_address: str | None = None
+    job_title: str | None = None
+    employment_contract_type: str | None = None
+    length_of_employment: str | None = None
+    monthly_salary: str | None = None
+    employer_contact_phone: str | None = None
+
+    # Business info (for Self-Employed)
+    business_name: str | None = None
+    business_type: str | None = None
+    business_address: str | None = None
+    business_ownership_type: str | None = None
+    nature_of_business: str | None = None
+    years_in_business: str | None = None
+    monthly_business_income: str | None = None
+    business_registration_number: str | None = None
+    business_contact_phone: str | None = None
+
+    # Generic JSON metadata
+    employment_details: dict | None = None
+
     # Referral info
     referral_type: ReferralType | None = ReferralType.NONE
     referral_name: str | None = None
@@ -100,6 +123,29 @@ class RegistrationRead(TimestampedRead):
     national_id: str | None = None
     document_name: str | None = None
     document_data: str | None = None
+
+    # Employed fields
+    employer_name: str | None = None
+    employer_address: str | None = None
+    job_title: str | None = None
+    employment_contract_type: str | None = None
+    length_of_employment: str | None = None
+    monthly_salary: str | None = None
+    employer_contact_phone: str | None = None
+
+    # Business fields
+    business_name: str | None = None
+    business_type: str | None = None
+    business_address: str | None = None
+    business_ownership_type: str | None = None
+    nature_of_business: str | None = None
+    years_in_business: str | None = None
+    monthly_business_income: str | None = None
+    business_registration_number: str | None = None
+    business_contact_phone: str | None = None
+
+    employment_details: dict | None = None
+
     referral_type: ReferralType | None = None
     referral_name: str | None = None
     referral_admin_id: UUID | None = None
@@ -125,6 +171,9 @@ class RegistrationListItem(TimestampedRead):
     sex: Sex | None = None
     national_id: str | None = None
     document_name: str | None = None
+    employer_name: str | None = None
+    business_name: str | None = None
+    employment_details: dict | None = None
     referral_type: ReferralType | None = None
     referral_name: str | None = None
     referral_admin_id: UUID | None = None

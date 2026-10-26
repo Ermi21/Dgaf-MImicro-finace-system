@@ -25,6 +25,27 @@ interface FormData {
   woreda_id: string;
   job_id: string;
   employment_type: "EMPLOYEE" | "SELF_EMPLOYED" | "";
+
+  // Employment Information — for Employed Customers
+  employer_name: string;
+  employer_address: string;
+  job_title: string;
+  employment_contract_type: "PERMANENT" | "CONTRACT" | "";
+  length_of_employment: string;
+  monthly_salary: string;
+  employer_contact_phone: string;
+
+  // Business Information — for Self-Employed Customers
+  business_name: string;
+  business_type: string;
+  business_address: string;
+  business_ownership_type: string;
+  nature_of_business: string;
+  years_in_business: string;
+  monthly_business_income: string;
+  business_registration_number: string;
+  business_contact_phone: string;
+
   referral_type: ReferralType;
   referral_name: string;
   // Document uploads
@@ -46,6 +67,27 @@ const EMPTY_FORM: FormData = {
   woreda_id: "",
   job_id: "",
   employment_type: "",
+
+  // Employed
+  employer_name: "",
+  employer_address: "",
+  job_title: "",
+  employment_contract_type: "",
+  length_of_employment: "",
+  monthly_salary: "",
+  employer_contact_phone: "",
+
+  // Self-Employed
+  business_name: "",
+  business_type: "",
+  business_address: "",
+  business_ownership_type: "",
+  nature_of_business: "",
+  years_in_business: "",
+  monthly_business_income: "",
+  business_registration_number: "",
+  business_contact_phone: "",
+
   referral_type: "NONE",
   referral_name: "",
   employee_id_file: null,
@@ -249,6 +291,14 @@ export function RegisterPage({
     }
     if (current === 3) {
       if (!form.employment_type) next.employment_type = t.register.validationRequired;
+      if (form.employment_type === "EMPLOYEE") {
+        if (!form.employer_name.trim()) next.employer_name = t.register.validationRequired;
+        if (!form.job_title.trim()) next.job_title = t.register.validationRequired;
+      } else if (form.employment_type === "SELF_EMPLOYED") {
+        if (!form.business_name.trim()) next.business_name = t.register.validationRequired;
+        if (!form.business_type.trim()) next.business_type = t.register.validationRequired;
+        if (!form.business_address.trim()) next.business_address = t.register.validationRequired;
+      }
       if (form.referral_type !== "NONE" && !form.referral_name.trim()) {
         next.referral_name = t.register.validationRequired;
       }
@@ -327,6 +377,26 @@ export function RegisterPage({
         referral_name: form.referral_name.trim() || undefined,
         document_name: form.document_name || undefined,
         document_data: form.document_data || undefined,
+
+        // Employed fields
+        employer_name: form.employment_type === "EMPLOYEE" ? form.employer_name.trim() || undefined : undefined,
+        employer_address: form.employment_type === "EMPLOYEE" ? form.employer_address.trim() || undefined : undefined,
+        job_title: form.employment_type === "EMPLOYEE" ? form.job_title.trim() || undefined : undefined,
+        employment_contract_type: form.employment_type === "EMPLOYEE" ? form.employment_contract_type || undefined : undefined,
+        length_of_employment: form.employment_type === "EMPLOYEE" ? form.length_of_employment.trim() || undefined : undefined,
+        monthly_salary: form.employment_type === "EMPLOYEE" ? form.monthly_salary.trim() || undefined : undefined,
+        employer_contact_phone: form.employment_type === "EMPLOYEE" ? form.employer_contact_phone.trim() || undefined : undefined,
+
+        // Self-Employed fields
+        business_name: form.employment_type === "SELF_EMPLOYED" ? form.business_name.trim() || undefined : undefined,
+        business_type: form.employment_type === "SELF_EMPLOYED" ? form.business_type.trim() || undefined : undefined,
+        business_address: form.employment_type === "SELF_EMPLOYED" ? form.business_address.trim() || undefined : undefined,
+        business_ownership_type: form.employment_type === "SELF_EMPLOYED" ? form.business_ownership_type || undefined : undefined,
+        nature_of_business: form.employment_type === "SELF_EMPLOYED" ? form.nature_of_business.trim() || undefined : undefined,
+        years_in_business: form.employment_type === "SELF_EMPLOYED" ? form.years_in_business.trim() || undefined : undefined,
+        monthly_business_income: form.employment_type === "SELF_EMPLOYED" ? form.monthly_business_income.trim() || undefined : undefined,
+        business_registration_number: form.employment_type === "SELF_EMPLOYED" ? form.business_registration_number.trim() || undefined : undefined,
+        business_contact_phone: form.employment_type === "SELF_EMPLOYED" ? form.business_contact_phone.trim() || undefined : undefined,
       };
 
       if (form.document_data) {
@@ -734,7 +804,87 @@ export function RegisterPage({
             }}
           />
 
-          {/* Document upload section - shows after employment type is selected */}
+          {/* Employment Information section for EMPLOYEE */}
+          {form.employment_type === "EMPLOYEE" && (
+            <div
+              style={{
+                marginTop: 16,
+                padding: "16px",
+                borderRadius: 12,
+                background: "rgba(16, 185, 129, 0.04)",
+                border: "1px solid rgba(16, 185, 129, 0.25)",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+                <span style={{ fontSize: 18 }}>💼</span>
+                <span style={{ fontWeight: 700, fontSize: 15, color: "#34d399" }}>
+                  2. {t.register.employmentInfoTitle}
+                </span>
+              </div>
+
+              <TextField
+                label={t.register.employerName}
+                value={form.employer_name}
+                error={errors.employer_name}
+                placeholder="e.g. Commercial Bank of Ethiopia, Midroc, ABC Co."
+                onChange={(e) => update("employer_name", e.target.value)}
+              />
+
+              <TextField
+                label={t.register.employerAddress}
+                value={form.employer_address}
+                error={errors.employer_address}
+                placeholder="e.g. Addis Ababa"
+                onChange={(e) => update("employer_address", e.target.value)}
+              />
+
+              <TextField
+                label={t.register.jobTitle}
+                value={form.job_title}
+                error={errors.job_title}
+                placeholder="e.g. Accountant, Driver, Sales Agent, Teacher"
+                onChange={(e) => update("job_title", e.target.value)}
+              />
+
+              <SelectField
+                label={t.register.employmentContractType}
+                value={form.employment_contract_type}
+                placeholder={t.register.selectPlaceholder}
+                error={errors.employment_contract_type}
+                options={[
+                  { value: "PERMANENT", label: t.register.contractPermanent },
+                  { value: "CONTRACT", label: t.register.contractContract },
+                ]}
+                onChange={(v) => update("employment_contract_type", v as any)}
+              />
+
+              <TextField
+                label={t.register.lengthOfEmployment}
+                value={form.length_of_employment}
+                error={errors.length_of_employment}
+                placeholder="e.g. 2 years, 6 months"
+                onChange={(e) => update("length_of_employment", e.target.value)}
+              />
+
+              <TextField
+                label={t.register.monthlySalary}
+                value={form.monthly_salary}
+                error={errors.monthly_salary}
+                placeholder="e.g. 15,000"
+                onChange={(e) => update("monthly_salary", e.target.value)}
+              />
+
+              <TextField
+                label={t.register.employerContactPhone}
+                value={form.employer_contact_phone}
+                error={errors.employer_contact_phone}
+                placeholder="e.g. 0911234567 or 0115512345"
+                onChange={(e) => update("employer_contact_phone", e.target.value)}
+              />
+            </div>
+          )}
+
+          {/* Document upload section for EMPLOYEE */}
           {form.employment_type === "EMPLOYEE" && (
             <div
               style={{
@@ -865,6 +1015,106 @@ export function RegisterPage({
             </div>
           )}
 
+          {/* Business Information section for SELF_EMPLOYED */}
+          {form.employment_type === "SELF_EMPLOYED" && (
+            <div
+              style={{
+                marginTop: 16,
+                padding: "16px",
+                borderRadius: 12,
+                background: "rgba(168, 85, 247, 0.04)",
+                border: "1px solid rgba(168, 85, 247, 0.25)",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+                <span style={{ fontSize: 18 }}>🏢</span>
+                <span style={{ fontWeight: 700, fontSize: 15, color: "#c084fc" }}>
+                  3. {t.register.businessInfoTitle}
+                </span>
+              </div>
+
+              <TextField
+                label={t.register.businessName}
+                value={form.business_name}
+                error={errors.business_name}
+                placeholder="e.g. Selam Grocery, Abebe Trading"
+                onChange={(e) => update("business_name", e.target.value)}
+              />
+
+              <TextField
+                label={t.register.businessType}
+                value={form.business_type}
+                error={errors.business_type}
+                placeholder="e.g. Retail, Wholesale, Service, Cafeteria"
+                onChange={(e) => update("business_type", e.target.value)}
+              />
+
+              <TextField
+                label={t.register.businessAddress}
+                value={form.business_address}
+                error={errors.business_address}
+                placeholder="e.g. Piassa, Churchill Ave, House 120"
+                onChange={(e) => update("business_address", e.target.value)}
+              />
+
+              <SelectField
+                label={t.register.businessOwnershipType}
+                value={form.business_ownership_type}
+                placeholder={t.register.selectPlaceholder}
+                error={errors.business_ownership_type}
+                options={[
+                  { value: "SOLE_PROPRIETORSHIP", label: t.register.ownershipSole },
+                  { value: "PARTNERSHIP", label: t.register.ownershipPartnership },
+                  { value: "PLC", label: t.register.ownershipPlc },
+                  { value: "SHARE_COMPANY", label: t.register.ownershipShareCompany },
+                  { value: "OTHER", label: t.register.ownershipOther },
+                ]}
+                onChange={(v) => update("business_ownership_type", v)}
+              />
+
+              <TextField
+                label={t.register.natureOfBusiness}
+                value={form.nature_of_business}
+                error={errors.nature_of_business}
+                placeholder="e.g. Food, Boutique, Electronics Repair, Agriculture"
+                onChange={(e) => update("nature_of_business", e.target.value)}
+              />
+
+              <TextField
+                label={t.register.yearsInBusiness}
+                value={form.years_in_business}
+                error={errors.years_in_business}
+                placeholder="e.g. 3 years"
+                onChange={(e) => update("years_in_business", e.target.value)}
+              />
+
+              <TextField
+                label={t.register.monthlyBusinessIncome}
+                value={form.monthly_business_income}
+                error={errors.monthly_business_income}
+                placeholder="e.g. 45,000"
+                onChange={(e) => update("monthly_business_income", e.target.value)}
+              />
+
+              <TextField
+                label={t.register.businessRegistrationNumber}
+                value={form.business_registration_number}
+                error={errors.business_registration_number}
+                placeholder="e.g. TIN: 0012345678 or License No."
+                onChange={(e) => update("business_registration_number", e.target.value)}
+              />
+
+              <TextField
+                label={t.register.businessContactPhone}
+                value={form.business_contact_phone}
+                error={errors.business_contact_phone}
+                placeholder="e.g. 0911000000 or 0111223344"
+                onChange={(e) => update("business_contact_phone", e.target.value)}
+              />
+            </div>
+          )}
+
+          {/* Document upload section for SELF_EMPLOYED */}
           {form.employment_type === "SELF_EMPLOYED" && (
             <div
               style={{
@@ -1050,17 +1300,75 @@ export function RegisterPage({
           <ReviewRow label={t.register.subcity} value={subcityName} />
           <ReviewRow label={t.register.woreda} value={woredaName} />
           <ReviewRow label={t.register.job} value={selectedJobDisplay} />
+          <ReviewRow
+            label={t.register.employmentType}
+            value={
+              form.employment_type === "EMPLOYEE"
+                ? t.register.employmentEmployee
+                : form.employment_type === "SELF_EMPLOYED"
+                ? t.register.employmentSelfEmployed
+                : ""
+            }
+          />
           {form.employment_type === "EMPLOYEE" && (
-            <ReviewRow
-              label={t.register.uploadEmployeeId}
-              value={form.employee_id_file ? `✅ ${form.employee_id_file.name}` : `⚠️ ${t.register.docNotUploaded}`}
-            />
+            <>
+              {form.employer_name && <ReviewRow label={t.register.employerName} value={form.employer_name} />}
+              {form.employer_address && <ReviewRow label={t.register.employerAddress} value={form.employer_address} />}
+              {form.job_title && <ReviewRow label={t.register.jobTitle} value={form.job_title} />}
+              {form.employment_contract_type && (
+                <ReviewRow
+                  label={t.register.employmentContractType}
+                  value={
+                    form.employment_contract_type === "PERMANENT"
+                      ? t.register.contractPermanent
+                      : form.employment_contract_type === "CONTRACT"
+                      ? t.register.contractContract
+                      : form.employment_contract_type
+                  }
+                />
+              )}
+              {form.length_of_employment && <ReviewRow label={t.register.lengthOfEmployment} value={form.length_of_employment} />}
+              {form.monthly_salary && <ReviewRow label={t.register.monthlySalary} value={`${form.monthly_salary} ETB`} />}
+              {form.employer_contact_phone && <ReviewRow label={t.register.employerContactPhone} value={form.employer_contact_phone} />}
+              <ReviewRow
+                label={t.register.uploadEmployeeId}
+                value={form.employee_id_file ? `✅ ${form.employee_id_file.name}` : `⚠️ ${t.register.docNotUploaded}`}
+              />
+            </>
           )}
           {form.employment_type === "SELF_EMPLOYED" && (
-            <ReviewRow
-              label={t.register.uploadBusinessLicense}
-              value={form.business_license_file ? `✅ ${form.business_license_file.name}` : `⚠️ ${t.register.docNotUploaded}`}
-            />
+            <>
+              {form.business_name && <ReviewRow label={t.register.businessName} value={form.business_name} />}
+              {form.business_type && <ReviewRow label={t.register.businessType} value={form.business_type} />}
+              {form.business_address && <ReviewRow label={t.register.businessAddress} value={form.business_address} />}
+              {form.business_ownership_type && (
+                <ReviewRow
+                  label={t.register.businessOwnershipType}
+                  value={
+                    form.business_ownership_type === "SOLE"
+                      ? t.register.ownershipSole
+                      : form.business_ownership_type === "PARTNERSHIP"
+                      ? t.register.ownershipPartnership
+                      : form.business_ownership_type === "PLC"
+                      ? t.register.ownershipPlc
+                      : form.business_ownership_type === "SHARE_COMPANY"
+                      ? t.register.ownershipShareCompany
+                      : form.business_ownership_type === "OTHER"
+                      ? t.register.ownershipOther
+                      : form.business_ownership_type
+                  }
+                />
+              )}
+              {form.nature_of_business && <ReviewRow label={t.register.natureOfBusiness} value={form.nature_of_business} />}
+              {form.years_in_business && <ReviewRow label={t.register.yearsInBusiness} value={form.years_in_business} />}
+              {form.monthly_business_income && <ReviewRow label={t.register.monthlyBusinessIncome} value={`${form.monthly_business_income} ETB`} />}
+              {form.business_registration_number && <ReviewRow label={t.register.businessRegistrationNumber} value={form.business_registration_number} />}
+              {form.business_contact_phone && <ReviewRow label={t.register.businessContactPhone} value={form.business_contact_phone} />}
+              <ReviewRow
+                label={t.register.uploadBusinessLicense}
+                value={form.business_license_file ? `✅ ${form.business_license_file.name}` : `⚠️ ${t.register.docNotUploaded}`}
+              />
+            </>
           )}
           <ReviewRow label={t.register.referral} value={referralDisplay} />
           {submitError && <ErrorBanner message={submitError} />}

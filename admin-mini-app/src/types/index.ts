@@ -81,9 +81,11 @@ export interface RegistrationListItem {
   job_name: string;
   city_name: string;
   subcity_name: string;
-  woreda_name: string;
   document_name?: string | null;
   document_data?: string | null;
+  employer_name?: string | null;
+  business_name?: string | null;
+  employment_details?: Record<string, any> | null;
 }
 
 export interface RegistrationDetail {
@@ -97,6 +99,29 @@ export interface RegistrationDetail {
   national_id?: string | null;
   document_name?: string | null;
   document_data?: string | null;
+
+  // Employed customer fields
+  employer_name?: string | null;
+  employer_address?: string | null;
+  job_title?: string | null;
+  employment_contract_type?: string | null;
+  length_of_employment?: string | null;
+  monthly_salary?: string | null;
+  employer_contact_phone?: string | null;
+
+  // Self-employed customer fields
+  business_name?: string | null;
+  business_type?: string | null;
+  business_address?: string | null;
+  business_ownership_type?: string | null;
+  nature_of_business?: string | null;
+  years_in_business?: string | null;
+  monthly_business_income?: string | null;
+  business_registration_number?: string | null;
+  business_contact_phone?: string | null;
+
+  employment_details?: Record<string, any> | null;
+
   referral_type?: ReferralType | null;
   referral_name?: string | null;
   referral_admin_id?: string | null;

@@ -109,6 +109,26 @@ class RegistrationService:
             if matched_id:
                 referral_admin_id = matched_id
 
+        # Assemble employment/business details bundle
+        details = dict(payload.employment_details or {})
+        if payload.employer_name: details["employer_name"] = payload.employer_name
+        if payload.employer_address: details["employer_address"] = payload.employer_address
+        if payload.job_title: details["job_title"] = payload.job_title
+        if payload.employment_contract_type: details["employment_contract_type"] = payload.employment_contract_type
+        if payload.length_of_employment: details["length_of_employment"] = payload.length_of_employment
+        if payload.monthly_salary: details["monthly_salary"] = payload.monthly_salary
+        if payload.employer_contact_phone: details["employer_contact_phone"] = payload.employer_contact_phone
+
+        if payload.business_name: details["business_name"] = payload.business_name
+        if payload.business_type: details["business_type"] = payload.business_type
+        if payload.business_address: details["business_address"] = payload.business_address
+        if payload.business_ownership_type: details["business_ownership_type"] = payload.business_ownership_type
+        if payload.nature_of_business: details["nature_of_business"] = payload.nature_of_business
+        if payload.years_in_business: details["years_in_business"] = payload.years_in_business
+        if payload.monthly_business_income: details["monthly_business_income"] = payload.monthly_business_income
+        if payload.business_registration_number: details["business_registration_number"] = payload.business_registration_number
+        if payload.business_contact_phone: details["business_contact_phone"] = payload.business_contact_phone
+
         gender_val = payload.gender or payload.sex
         registration = Registration(
             user_id=user.id,
@@ -121,6 +141,23 @@ class RegistrationService:
             national_id=payload.national_id,
             document_name=payload.document_name,
             document_data=payload.document_data,
+            employer_name=payload.employer_name,
+            employer_address=payload.employer_address,
+            job_title=payload.job_title,
+            employment_contract_type=payload.employment_contract_type,
+            length_of_employment=payload.length_of_employment,
+            monthly_salary=payload.monthly_salary,
+            employer_contact_phone=payload.employer_contact_phone,
+            business_name=payload.business_name,
+            business_type=payload.business_type,
+            business_address=payload.business_address,
+            business_ownership_type=payload.business_ownership_type,
+            nature_of_business=payload.nature_of_business,
+            years_in_business=payload.years_in_business,
+            monthly_business_income=payload.monthly_business_income,
+            business_registration_number=payload.business_registration_number,
+            business_contact_phone=payload.business_contact_phone,
+            employment_details=details if details else None,
             referral_type=payload.referral_type,
             referral_name=payload.referral_name,
             referral_admin_id=referral_admin_id,

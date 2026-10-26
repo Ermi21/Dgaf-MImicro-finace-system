@@ -1,4 +1,5 @@
-const en = {  common: {
+const en = {
+  common: {
     loading: "Loading...",
     retry: "Try again",
     back: "Back",
@@ -8,7 +9,7 @@ const en = {  common: {
     somethingWrong: "Something went wrong.",
   },
   home: {
-    title: "Digaf Job Platform",
+    title: "Digaf Digital Credit Application platform",
     subtitle: "Complete your registration or check your application status.",
   },
   register: {
@@ -20,7 +21,7 @@ const en = {  common: {
     firstName: "First name",
     secondName: "Second name",
     phone: "Phone number (Ethio Telecom or Safaricom)",
-    phoneHint: "9XX XXX XXX or 7XX XXX XXX",
+    phoneHint: "9 or 7",
     city: "City",
     subcity: "Subcity / Zone",
     woreda: "Woreda",
@@ -68,6 +69,35 @@ const en = {  common: {
     takePhoto: "Take Photo",
     docSkipWarning: "Without this document, your application may be rejected.",
     docNotUploaded: "Not uploaded — may be rejected",
+
+    // Employment Information (for Employed)
+    employmentInfoTitle: "Employment Information",
+    employerName: "Company Name",
+    employerAddress: "Employer Address",
+    jobTitle: "Job Title",
+    employmentContractType: "Employment Type",
+    contractPermanent: "Permanent",
+    contractContract: "Contract",
+    lengthOfEmployment: "Length of Employment",
+    monthlySalary: "Monthly Salary (ETB)",
+    employerContactPhone: "Employer Phone",
+
+    // Business Information (for Self-Employed)
+    businessInfoTitle: "Business Information",
+    businessName: "Business Name",
+    businessType: "Business Type",
+    businessAddress: "Business Address",
+    businessOwnershipType: "Business Ownership Type",
+    ownershipSole: "Sole Proprietorship",
+    ownershipPartnership: "Partnership",
+    ownershipPlc: "Private Limited Company (PLC)",
+    ownershipShareCompany: "Share Company (S.C.)",
+    ownershipOther: "Other",
+    natureOfBusiness: "Nature of Business",
+    yearsInBusiness: "Years in Business",
+    monthlyBusinessIncome: "Monthly Income (ETB)",
+    businessRegistrationNumber: "Business Registration Number (TIN/License)",
+    businessContactPhone: "Business Contact Number",
   },
   profile: {
     title: "My Profile",

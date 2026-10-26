@@ -627,6 +627,78 @@ function RegistrationDetailView({ id, onBack }: { id: string; onBack: () => void
             )}
           </div>
 
+          {/* Employment Information Card (for EMPLOYEE) */}
+          {state.data.employment_type === "EMPLOYEE" && (
+            <div className="card" style={{ padding: 16, borderRadius: 12, marginBottom: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, fontWeight: 700, fontSize: 15, color: "var(--tg-text, #e2e8f0)" }}>
+                <span>💼</span>
+                <span>{t.registrations.employmentDetailsTitle}</span>
+              </div>
+              <Row label={t.registrations.employerName} value={state.data.employer_name || state.data.employment_details?.employer_name || "—"} />
+              <Row label={t.registrations.employerAddress} value={state.data.employer_address || state.data.employment_details?.employer_address || "—"} />
+              <Row label={t.registrations.jobTitle} value={state.data.job_title || state.data.employment_details?.job_title || "—"} />
+              <Row
+                label={t.registrations.employmentContractType}
+                value={
+                  (state.data.employment_contract_type || state.data.employment_details?.employment_contract_type) === "PERMANENT"
+                    ? t.registrations.contractPermanent
+                    : (state.data.employment_contract_type || state.data.employment_details?.employment_contract_type) === "CONTRACT"
+                    ? t.registrations.contractContract
+                    : state.data.employment_contract_type || state.data.employment_details?.employment_contract_type || "—"
+                }
+              />
+              <Row label={t.registrations.lengthOfEmployment} value={state.data.length_of_employment || state.data.employment_details?.length_of_employment || "—"} />
+              <Row
+                label={t.registrations.monthlySalary}
+                value={
+                  (state.data.monthly_salary || state.data.employment_details?.monthly_salary)
+                    ? `${state.data.monthly_salary || state.data.employment_details?.monthly_salary} ETB`
+                    : "—"
+                }
+              />
+              <Row label={t.registrations.employerContactPhone} value={state.data.employer_contact_phone || state.data.employment_details?.employer_contact_phone || "—"} />
+            </div>
+          )}
+
+          {/* Business Information Card (for SELF_EMPLOYED) */}
+          {state.data.employment_type === "SELF_EMPLOYED" && (
+            <div className="card" style={{ padding: 16, borderRadius: 12, marginBottom: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, fontWeight: 700, fontSize: 15, color: "var(--tg-text, #e2e8f0)" }}>
+                <span>🏢</span>
+                <span>{t.registrations.businessDetailsTitle}</span>
+              </div>
+              <Row label={t.registrations.businessName} value={state.data.business_name || state.data.employment_details?.business_name || "—"} />
+              <Row label={t.registrations.businessType} value={state.data.business_type || state.data.employment_details?.business_type || "—"} />
+              <Row label={t.registrations.businessAddress} value={state.data.business_address || state.data.employment_details?.business_address || "—"} />
+              <Row
+                label={t.registrations.businessOwnershipType}
+                value={
+                  (() => {
+                    const own = state.data.business_ownership_type || state.data.employment_details?.business_ownership_type;
+                    if (own === "SOLE") return t.registrations.ownershipSole;
+                    if (own === "PARTNERSHIP") return t.registrations.ownershipPartnership;
+                    if (own === "PLC") return t.registrations.ownershipPlc;
+                    if (own === "SHARE_COMPANY") return t.registrations.ownershipShareCompany;
+                    if (own === "OTHER") return t.registrations.ownershipOther;
+                    return own || "—";
+                  })()
+                }
+              />
+              <Row label={t.registrations.natureOfBusiness} value={state.data.nature_of_business || state.data.employment_details?.nature_of_business || "—"} />
+              <Row label={t.registrations.yearsInBusiness} value={state.data.years_in_business || state.data.employment_details?.years_in_business || "—"} />
+              <Row
+                label={t.registrations.monthlyBusinessIncome}
+                value={
+                  (state.data.monthly_business_income || state.data.employment_details?.monthly_business_income)
+                    ? `${state.data.monthly_business_income || state.data.employment_details?.monthly_business_income} ETB`
+                    : "—"
+                }
+              />
+              <Row label={t.registrations.businessRegistrationNumber} value={state.data.business_registration_number || state.data.employment_details?.business_registration_number || "—"} />
+              <Row label={t.registrations.businessContactPhone} value={state.data.business_contact_phone || state.data.employment_details?.business_contact_phone || "—"} />
+            </div>
+          )}
+
           {/* Verification Document Audit Card */}
           <div
             className="card"

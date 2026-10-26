@@ -32,7 +32,7 @@ def normalize_phone(raw: str) -> str:
     if len(national) != 9 or national[0] not in _LOCAL_MOBILE_PREFIXES:
         raise ValidationFailedError(
             "Phone number must be a valid Ethiopian mobile number, "
-            "e.g. 09XXXXXXXX or +2519XXXXXXXX"
+            
         )
 
     return f"+{_COUNTRY_CODE}{national}"

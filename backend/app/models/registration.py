@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Index, Text
+from sqlalchemy import JSON, DateTime, Enum, ForeignKey, Index, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -57,6 +57,29 @@ class Registration(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     national_id: Mapped[str | None] = mapped_column(Text, nullable=True)
     document_name: Mapped[str | None] = mapped_column(Text, nullable=True)
     document_data: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # Employed customer fields
+    employer_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    employer_address: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    job_title: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    employment_contract_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    length_of_employment: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    monthly_salary: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    employer_contact_phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
+
+    # Self-employed customer fields
+    business_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    business_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    business_address: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    business_ownership_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    nature_of_business: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    years_in_business: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    monthly_business_income: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    business_registration_number: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    business_contact_phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
+
+    # JSON metadata bundle
+    employment_details: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     # Referral system
     referral_type: Mapped[ReferralType | None] = mapped_column(
