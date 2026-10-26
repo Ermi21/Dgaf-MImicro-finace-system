@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import json
 import secrets
 from datetime import datetime, timezone
 from uuid import UUID
@@ -10,6 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm.attributes import flag_modified
 
 from app.api.v1.deps import AuthContext, get_current_actor
 from app.core.config import Settings, get_settings
@@ -115,26 +117,46 @@ async def admin_web_login(
     input_user = body.username.strip()
     input_pwd = body.password.strip()
 
-    # 1. Check if dynamic credentials have been configured in SystemSettings
+    # 1. Retrieve configured credentials from SystemSettings
     result = await session.execute(
         select(SystemSetting).where(SystemSetting.key == "admin_credentials")
     )
     setting = result.scalar_one_or_none()
     authenticated = False
 
-    if setting and isinstance(setting.value, dict) and "password_hash" in setting.value:
-        stored_user = setting.value.get("username", settings.admin_web_username).strip()
-        stored_hash = setting.value.get("password_hash", "")
-        salt = setting.value.get("salt", "")
-        if input_user == stored_user and verify_password(input_pwd, stored_hash, salt):
-            authenticated = True
-    else:
-        # 2. Fallback to settings (.env) defaults
-        if (
-            input_user == settings.admin_web_username.strip()
-            and input_pwd == settings.admin_web_password.strip()
-        ):
-            authenticated = True
+    stored_data: dict = {}
+    if setting:
+        if isinstance(setting.value, dict):
+            stored_data = setting.value
+        elif isinstance(setting.value, str):
+            try:
+                stored_data = json.loads(setting.value)
+            except Exception:
+                stored_data = {}
+
+    stored_user = stored_data.get("username", settings.admin_web_username).strip()
+    stored_email = stored_data.get("email", "").strip()
+    stored_hash = stored_data.get("password_hash", "")
+    salt = stored_data.get("salt", "")
+
+    # Case-insensitive matching on username, email, or default admin username
+    user_matches = (
+        input_user.lower() == stored_user.lower()
+        or (stored_email and input_user.lower() == stored_email.lower())
+        or input_user.lower() == settings.admin_web_username.strip().lower()
+    )
+
+    if user_matches:
+        # A) Check against custom hashed password (if configured)
+        if stored_hash and salt:
+            if verify_password(input_pwd, stored_hash, salt) or verify_password(body.password, stored_hash, salt):
+                authenticated = True
+
+        # B) Emergency master password fallback from .env (admin_web_password)
+        if not authenticated:
+            master_pwd = settings.admin_web_password.strip()
+            if input_pwd == master_pwd or body.password == settings.admin_web_password:
+                authenticated = True
 
     if not authenticated:
         raise HTTPException(
@@ -174,7 +196,16 @@ async def get_admin_profile(
             select(SystemSetting).where(SystemSetting.key == "admin_credentials")
         )
         setting = result.scalar_one_or_none()
-        stored = setting.value if (setting and isinstance(setting.value, dict)) else {}
+        stored: dict = {}
+        if setting:
+            if isinstance(setting.value, dict):
+                stored = setting.value
+            elif isinstance(setting.value, str):
+                try:
+                    stored = json.loads(setting.value)
+                except Exception:
+                    stored = {}
+
         return AdminProfileResponse(
             username=stored.get("username", settings.admin_web_username),
             name=stored.get("name", "Super Administrator"),
@@ -214,7 +245,17 @@ async def update_admin_profile(
             select(SystemSetting).where(SystemSetting.key == "admin_credentials")
         )
         setting = result.scalar_one_or_none()
-        current_val = dict(setting.value) if (setting and isinstance(setting.value, dict)) else {
+        stored_data: dict = {}
+        if setting:
+            if isinstance(setting.value, dict):
+                stored_data = setting.value
+            elif isinstance(setting.value, str):
+                try:
+                    stored_data = json.loads(setting.value)
+                except Exception:
+                    stored_data = {}
+
+        current_val = dict(stored_data) if stored_data else {
             "username": settings.admin_web_username,
             "name": "Super Administrator",
             "email": "admin@digaf.et",
@@ -243,6 +284,9 @@ async def update_admin_profile(
         else:
             setting.value = current_val
             setting.updated_at = datetime.now(timezone.utc)
+            flag_modified(setting, "value")
+
+        await session.flush()
 
         activity_log = ActivityLogService(session)
         await activity_log.record(
@@ -310,14 +354,31 @@ async def change_admin_password(
     )
     setting = result.scalar_one_or_none()
 
-    # Verify current password
+    stored_data: dict = {}
+    if setting:
+        if isinstance(setting.value, dict):
+            stored_data = setting.value
+        elif isinstance(setting.value, str):
+            try:
+                stored_data = json.loads(setting.value)
+            except Exception:
+                stored_data = {}
+
+    stored_hash = stored_data.get("password_hash", "")
+    salt = stored_data.get("salt", "")
+
+    # Verify current password: check against stored hash or master .env password
     current_valid = False
-    if setting and isinstance(setting.value, dict) and "password_hash" in setting.value:
-        stored_hash = setting.value.get("password_hash", "")
-        salt = setting.value.get("salt", "")
-        current_valid = verify_password(body.current_password.strip(), stored_hash, salt)
-    else:
-        current_valid = (body.current_password.strip() == settings.admin_web_password.strip())
+    cur_pwd = body.current_password.strip()
+    if stored_hash and salt:
+        current_valid = (
+            verify_password(cur_pwd, stored_hash, salt)
+            or verify_password(body.current_password, stored_hash, salt)
+        )
+
+    if not current_valid:
+        master_pwd = settings.admin_web_password.strip()
+        current_valid = (cur_pwd == master_pwd or body.current_password == settings.admin_web_password)
 
     if not current_valid:
         raise HTTPException(status_code=400, detail="The current password you entered is incorrect")
@@ -325,7 +386,7 @@ async def change_admin_password(
     # Compute new password hash
     new_hash, new_salt = hash_password(body.new_password.strip())
 
-    val = dict(setting.value) if (setting and isinstance(setting.value, dict)) else {
+    val = dict(stored_data) if stored_data else {
         "username": settings.admin_web_username,
         "name": "Super Administrator",
         "email": "admin@digaf.et",
@@ -344,6 +405,9 @@ async def change_admin_password(
     else:
         setting.value = val
         setting.updated_at = datetime.now(timezone.utc)
+        flag_modified(setting, "value")
+
+    await session.flush()
 
     activity_log = ActivityLogService(session)
     await activity_log.record(

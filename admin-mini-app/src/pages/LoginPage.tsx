@@ -107,16 +107,19 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 marginBottom: "8px",
               }}
             >
-              Username
+              Username or Email
             </label>
             <input
               id="admin-username"
               type="text"
               autoComplete="username"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck="false"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               disabled={loading}
-              placeholder="e.g. admin"
+              placeholder="Username or Email (e.g. admin)"
               style={{
                 width: "100%",
                 padding: "12px 14px",
