@@ -909,12 +909,14 @@ export function RegisterPage({
                 border: "1px solid rgba(59, 130, 246, 0.2)",
               }}
             >
-              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "var(--tg-text, #e2e8f0)" }}>
-                📄 {t.register.uploadEmployeeId}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                <span style={{ fontWeight: 700, fontSize: 13.5, color: "var(--tg-text, #e2e8f0)" }}>
+                  📄 {t.register.uploadEmployeeId}
+                </span>
+                <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 12, background: "rgba(59, 130, 246, 0.15)", color: "#60a5fa", fontWeight: 600 }}>
+                  PDF / Image
+                </span>
               </div>
-              <p style={{ fontSize: 12, color: "var(--tg-hint, #94a3b8)", margin: "0 0 12px" }}>
-                {t.register.uploadEmployeeIdHint}
-              </p>
 
               {form.employee_id_file ? (
                 <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "rgba(16, 185, 129, 0.1)", borderRadius: 8, marginBottom: 10 }}>
@@ -1139,12 +1141,14 @@ export function RegisterPage({
                 border: "1px solid rgba(168, 85, 247, 0.2)",
               }}
             >
-              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: "var(--tg-text, #e2e8f0)" }}>
-                🏢 {t.register.uploadBusinessLicense}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                <span style={{ fontWeight: 700, fontSize: 13.5, color: "var(--tg-text, #e2e8f0)" }}>
+                  🏢 {t.register.uploadBusinessLicense}
+                </span>
+                <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 12, background: "rgba(168, 85, 247, 0.15)", color: "#c084fc", fontWeight: 600 }}>
+                  PDF / Image
+                </span>
               </div>
-              <p style={{ fontSize: 12, color: "var(--tg-hint, #94a3b8)", margin: "0 0 12px" }}>
-                {t.register.uploadBusinessLicenseHint}
-              </p>
 
               {form.business_license_file ? (
                 <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "rgba(16, 185, 129, 0.1)", borderRadius: 8, marginBottom: 10 }}>
